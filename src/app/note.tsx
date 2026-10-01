@@ -11,77 +11,88 @@ import {
   View,
 } from 'react-native';
 
-import { getPokemon, Pokemon } from '@/services/pokeApi';
-import { usePokemon } from '@/context/PokemonContext';
+import {
+  getCharacter,
+  getCharacterByIndex,
+  NoteCharacterItem,
+} from '@/services/noteApi';
+import { useNote } from '@/context/NoteContext';
 
-export default function PokemonScreen() {
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [prevPokemon, setPrevPokemon] = useState<Pokemon | null>(null);
-  const [nextPokemon, setNextPokemon] = useState<Pokemon | null>(null);
+export default function NoteScreen() {
+  const [noteSearch, setNoteSearch] = useState('');
+  const [noteLoading, setNoteLoading] = useState(false);
+  const [noteError, setNoteError] = useState('');
+  const [noteIndex, setNoteIndex] = useState(0);
+  const [noteTotal, setNoteTotal] = useState(0);
+  const [prevNote, setPrevNote] = useState<NoteCharacterItem | null>(null);
+  const [nextNote, setNextNote] = useState<NoteCharacterItem | null>(null);
 
-  const { pokemon, setPokemon } = usePokemon();
+  const { noteCharacter, setNoteCharacter } = useNote();
 
-  const loadPokemon = async (nameOrId: string | number) => {
-    setLoading(true);
-    setError('');
-
+  const loadNote = async (query: string | number) => {
+    setNoteLoading(true);
+    setNoteError('');
     try {
-      const data = await getPokemon(nameOrId);
-      setPokemon(data);
-      setSearch(data.name);
-
-      if (data.id > 1) {
-        try {
-          const prevData = await getPokemon(data.id - 1);
-          setPrevPokemon(prevData);
-        } catch {
-          setPrevPokemon(null);
-        }
-      } else {
-        setPrevPokemon(null);
-      }
-
-      try {
-        const nextData = await getPokemon(data.id + 1);
-        setNextPokemon(nextData);
-      } catch {
-        setNextPokemon(null);
-      }
+      const result = await getCharacter(query);
+      setNoteCharacter(result.character);
+      setNoteIndex(result.index);
+      setNoteTotal(result.total);
+      setPrevNote(result.prev);
+      setNextNote(result.next);
+      setNoteSearch(result.character.character.name);
     } catch (err: any) {
-      setError(err?.message || 'No se pudo consultar el Pokémon');
+      setNoteError(err.message || 'No se pudo consultar el personaje');
     } finally {
-      setLoading(false);
+      setNoteLoading(false);
+    }
+  };
+
+  const loadNoteByIndex = async (index: number) => {
+    setNoteLoading(true);
+    setNoteError('');
+    try {
+      const result = await getCharacterByIndex(index);
+      setNoteCharacter(result.character);
+      setNoteIndex(result.index);
+      setNoteTotal(result.total);
+      setPrevNote(result.prev);
+      setNextNote(result.next);
+      setNoteSearch(result.character.character.name);
+    } catch (err: any) {
+      setNoteError(err.message || 'No se pudo consultar el personaje');
+    } finally {
+      setNoteLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!pokemon) {
-      loadPokemon(25);
+    if (!noteCharacter) {
+      loadNoteByIndex(0);
     } else {
-      setSearch(pokemon.name);
-      loadPokemon(pokemon.id);
+      setNoteSearch(noteCharacter.character.name);
+      loadNote(noteCharacter.character.name);
     }
   }, []);
 
-  const handleSearch = async () => {
-    if (!search.trim()) {
-      setError('Escribe el nombre o ID de un Pokémon');
+  const handleNoteSearch = async () => {
+    if (!noteSearch.trim()) {
+      setNoteError('Escribe el nombre o ID de un personaje');
       return;
     }
     Keyboard.dismiss();
-    await loadPokemon(search.trim());
+    await loadNote(noteSearch.trim());
   };
 
-  const handleNext = async () => {
-    if (!pokemon) return;
-    await loadPokemon(pokemon.id + 1);
+  const handleNoteNext = async () => {
+    if (noteIndex < noteTotal - 1) {
+      await loadNoteByIndex(noteIndex + 1);
+    }
   };
 
-  const handlePrevious = async () => {
-    if (!pokemon || pokemon.id <= 1) return;
-    await loadPokemon(pokemon.id - 1);
+  const handleNotePrevious = async () => {
+    if (noteIndex > 0) {
+      await loadNoteByIndex(noteIndex - 1);
+    }
   };
 
   return (
@@ -90,57 +101,61 @@ export default function PokemonScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Buscar Pokémon</Text>
+      <Text style={styles.title}>Buscar Personaje</Text>
 
       <View style={styles.searchRow}>
         <TextInput
           style={styles.input}
-          placeholder="Ej: ditto o 25"
+          placeholder="Ej: light o 1"
           placeholderTextColor="#999"
-          value={search}
-          onChangeText={setSearch}
+          value={noteSearch}
+          onChangeText={setNoteSearch}
           autoCapitalize="none"
           autoCorrect={false}
-          onSubmitEditing={handleSearch}
+          onSubmitEditing={handleNoteSearch}
         />
 
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={handleSearch}
+          onPress={handleNoteSearch}
           activeOpacity={0.8}
         >
           <Text style={styles.searchButtonText}>Buscar</Text>
         </TouchableOpacity>
       </View>
 
-      {loading && (
+      {noteLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#E53935" />
           <Text style={styles.loadingText}>Cargando...</Text>
         </View>
       )}
 
-      {error !== '' && !loading && (
+      {noteError !== '' && !noteLoading && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>{noteError}</Text>
         </View>
       )}
 
-      {pokemon && !loading && (
+      {noteCharacter && !noteLoading && (
         <View style={styles.card}>
-          <Text style={styles.pokemonName}>{pokemon.name.toUpperCase()}</Text>
-          <Text style={styles.pokemonId}>#{pokemon.id}</Text>
+          <Text style={styles.pokemonName}>
+            {noteCharacter.character.name.toUpperCase()}
+          </Text>
+          <Text style={styles.pokemonId}>
+            #{noteCharacter.character.mal_id}
+          </Text>
 
           <View style={styles.imagesRow}>
-            {prevPokemon && prevPokemon.sprites.front_default ? (
+            {prevNote && prevNote.character.images?.jpg?.image_url ? (
               <TouchableOpacity
-                onPress={() => loadPokemon(prevPokemon.id)}
+                onPress={() => loadNoteByIndex(noteIndex - 1)}
                 style={styles.smallImageContainer}
               >
                 <Image
-                  source={{ uri: prevPokemon.sprites.front_default }}
+                  source={{ uri: prevNote.character.images.jpg.image_url }}
                   style={styles.sideImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
                 <Text style={styles.imageLabel}>Anterior</Text>
               </TouchableOpacity>
@@ -150,12 +165,12 @@ export default function PokemonScreen() {
               </View>
             )}
 
-            {pokemon.sprites.front_default ? (
+            {noteCharacter.character.images?.jpg?.image_url ? (
               <View style={styles.mainImageContainer}>
                 <Image
-                  source={{ uri: pokemon.sprites.front_default }}
+                  source={{ uri: noteCharacter.character.images.jpg.image_url }}
                   style={styles.pokemonImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
                 <Text style={styles.mainImageLabel}>Actual</Text>
               </View>
@@ -163,15 +178,15 @@ export default function PokemonScreen() {
               <Text style={styles.noImageText}>Sin imagen</Text>
             )}
 
-            {nextPokemon && nextPokemon.sprites.front_default ? (
+            {nextNote && nextNote.character.images?.jpg?.image_url ? (
               <TouchableOpacity
-                onPress={() => loadPokemon(nextPokemon.id)}
+                onPress={() => loadNoteByIndex(noteIndex + 1)}
                 style={styles.smallImageContainer}
               >
                 <Image
-                  source={{ uri: nextPokemon.sprites.front_default }}
+                  source={{ uri: nextNote.character.images.jpg.image_url }}
                   style={styles.sideImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
                 <Text style={styles.imageLabel}>Siguiente</Text>
               </TouchableOpacity>
@@ -186,18 +201,22 @@ export default function PokemonScreen() {
             <TouchableOpacity
               style={[
                 styles.navigationButton,
-                pokemon.id <= 1 && styles.disabledButton,
+                noteIndex <= 0 && styles.disabledButton,
               ]}
-              onPress={handlePrevious}
-              disabled={pokemon.id <= 1}
+              onPress={handleNotePrevious}
+              disabled={noteIndex <= 0}
               activeOpacity={0.8}
             >
               <Text style={styles.navigationButtonText}>Anterior</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.navigationButton}
-              onPress={handleNext}
+              style={[
+                styles.navigationButton,
+                noteIndex >= noteTotal - 1 && styles.disabledButton,
+              ]}
+              onPress={handleNoteNext}
+              disabled={noteIndex >= noteTotal - 1}
               activeOpacity={0.8}
             >
               <Text style={styles.navigationButtonText}>Siguiente</Text>
