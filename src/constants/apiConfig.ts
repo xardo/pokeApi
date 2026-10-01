@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
  *   export const POKEMON_CLOUD_URL: string = 'https://pokemon-service-node.onrender.com';
  *   export const ANIME_CLOUD_URL: string = 'https://anime-service-python.up.railway.app';
  */
-export const POKEMON_CLOUD_URL: string = '';
+export const POKEMON_CLOUD_URL: string = 'https://pokeapi-1a0b.onrender.com';
 export const ANIME_CLOUD_URL: string = '';
 
 export const GET_POKEMON_BASE_URL = (): string => {
