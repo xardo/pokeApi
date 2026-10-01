@@ -58,7 +58,7 @@ export default function PokemonScreen() {
 
   useEffect(() => {
     if (!pokemon) {
-      loadPokemon(25);
+      loadPokemon(1);
     } else {
       setSearch(pokemon.name);
       loadPokemon(pokemon.id);

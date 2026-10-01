@@ -41,3 +41,11 @@ example
 # generated native folders
 /ios
 /android
+
+# Deliverables & caches
+pokeApi_entrega.zip
+services/**/node_modules/
+__pycache__/
+*.pyc
+.env
+*firebase*.json

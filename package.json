@@ -40,7 +40,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "zip": "powershell -ExecutionPolicy Bypass -File ./scripts/create-submission-zip.ps1"
   },
   "private": true
 }

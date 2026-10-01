@@ -1,9 +1,4 @@
-import { Platform } from 'react-native';
-
-const BASE_URL = Platform.select({
-  android: 'http://10.0.2.2:3000/api/pokemon',
-  default: 'http://localhost:3000/api/pokemon',
-});
+import { GET_POKEMON_BASE_URL } from '@/constants/apiConfig';
 
 export interface Pokemon {
   id: number;
@@ -32,7 +27,8 @@ export async function getPokemon(nameOrId: string | number): Promise<Pokemon> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-    const response = await fetch(`${BASE_URL}/${query}`, {
+    const baseUrl = GET_POKEMON_BASE_URL();
+    const response = await fetch(`${baseUrl}/${query}`, {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);

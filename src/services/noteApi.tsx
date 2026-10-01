@@ -1,6 +1,5 @@
 import fallbackData from '@/constants/deathNoteCharacters.json';
-
-const JIKAN_URL = 'https://api.jikan.moe/v4/anime/1535/characters';
+import { GET_ANIME_BASE_URL } from '@/constants/apiConfig';
 
 export interface NoteVoiceActor {
   person: {
@@ -57,7 +56,8 @@ export async function getCharactersList(): Promise<NoteCharacterItem[]> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 6000);
 
-    const response = await fetch(JIKAN_URL, {
+    const url = GET_ANIME_BASE_URL();
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         Accept: 'application/json',

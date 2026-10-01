@@ -1,0 +1,412 @@
+[
+  {
+    "id": 1,
+    "name": "bulbasaur",
+    "height": 7,
+    "weight": 69,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "razor-wind",
+          "url": "https://pokeapi.co/api/v2/move/13/"
+        }
+      },
+      {
+        "move": {
+          "name": "swords-dance",
+          "url": "https://pokeapi.co/api/v2/move/14/"
+        }
+      },
+      {
+        "move": {
+          "name": "cut",
+          "url": "https://pokeapi.co/api/v2/move/15/"
+        }
+      },
+      {
+        "move": {
+          "name": "bind",
+          "url": "https://pokeapi.co/api/v2/move/20/"
+        }
+      },
+      {
+        "move": {
+          "name": "vine-whip",
+          "url": "https://pokeapi.co/api/v2/move/22/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "ivysaur",
+    "height": 10,
+    "weight": 130,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/2.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "swords-dance",
+          "url": "https://pokeapi.co/api/v2/move/14/"
+        }
+      },
+      {
+        "move": {
+          "name": "cut",
+          "url": "https://pokeapi.co/api/v2/move/15/"
+        }
+      },
+      {
+        "move": {
+          "name": "bind",
+          "url": "https://pokeapi.co/api/v2/move/20/"
+        }
+      },
+      {
+        "move": {
+          "name": "vine-whip",
+          "url": "https://pokeapi.co/api/v2/move/22/"
+        }
+      },
+      {
+        "move": {
+          "name": "headbutt",
+          "url": "https://pokeapi.co/api/v2/move/29/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "venusaur",
+    "height": 20,
+    "weight": 1000,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/3.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "swords-dance",
+          "url": "https://pokeapi.co/api/v2/move/14/"
+        }
+      },
+      {
+        "move": {
+          "name": "cut",
+          "url": "https://pokeapi.co/api/v2/move/15/"
+        }
+      },
+      {
+        "move": {
+          "name": "bind",
+          "url": "https://pokeapi.co/api/v2/move/20/"
+        }
+      },
+      {
+        "move": {
+          "name": "vine-whip",
+          "url": "https://pokeapi.co/api/v2/move/22/"
+        }
+      },
+      {
+        "move": {
+          "name": "headbutt",
+          "url": "https://pokeapi.co/api/v2/move/29/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "charmander",
+    "height": 6,
+    "weight": 85,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "mega-punch",
+          "url": "https://pokeapi.co/api/v2/move/5/"
+        }
+      },
+      {
+        "move": {
+          "name": "fire-punch",
+          "url": "https://pokeapi.co/api/v2/move/7/"
+        }
+      },
+      {
+        "move": {
+          "name": "thunder-punch",
+          "url": "https://pokeapi.co/api/v2/move/9/"
+        }
+      },
+      {
+        "move": {
+          "name": "scratch",
+          "url": "https://pokeapi.co/api/v2/move/10/"
+        }
+      },
+      {
+        "move": {
+          "name": "swords-dance",
+          "url": "https://pokeapi.co/api/v2/move/14/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "charmeleon",
+    "height": 11,
+    "weight": 190,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/5.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "mega-punch",
+          "url": "https://pokeapi.co/api/v2/move/5/"
+        }
+      },
+      {
+        "move": {
+          "name": "fire-punch",
+          "url": "https://pokeapi.co/api/v2/move/7/"
+        }
+      },
+      {
+        "move": {
+          "name": "thunder-punch",
+          "url": "https://pokeapi.co/api/v2/move/9/"
+        }
+      },
+      {
+        "move": {
+          "name": "scratch",
+          "url": "https://pokeapi.co/api/v2/move/10/"
+        }
+      },
+      {
+        "move": {
+          "name": "swords-dance",
+          "url": "https://pokeapi.co/api/v2/move/14/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "charizard",
+    "height": 17,
+    "weight": 905,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "mega-punch",
+          "url": "https://pokeapi.co/api/v2/move/5/"
+        }
+      },
+      {
+        "move": {
+          "name": "fire-punch",
+          "url": "https://pokeapi.co/api/v2/move/7/"
+        }
+      },
+      {
+        "move": {
+          "name": "thunder-punch",
+          "url": "https://pokeapi.co/api/v2/move/9/"
+        }
+      },
+      {
+        "move": {
+          "name": "scratch",
+          "url": "https://pokeapi.co/api/v2/move/10/"
+        }
+      },
+      {
+        "move": {
+          "name": "swords-dance",
+          "url": "https://pokeapi.co/api/v2/move/14/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "squirtle",
+    "height": 5,
+    "weight": 90,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "mega-punch",
+          "url": "https://pokeapi.co/api/v2/move/5/"
+        }
+      },
+      {
+        "move": {
+          "name": "ice-punch",
+          "url": "https://pokeapi.co/api/v2/move/8/"
+        }
+      },
+      {
+        "move": {
+          "name": "mega-kick",
+          "url": "https://pokeapi.co/api/v2/move/25/"
+        }
+      },
+      {
+        "move": {
+          "name": "headbutt",
+          "url": "https://pokeapi.co/api/v2/move/29/"
+        }
+      },
+      {
+        "move": {
+          "name": "tackle",
+          "url": "https://pokeapi.co/api/v2/move/33/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "wartortle",
+    "height": 10,
+    "weight": 225,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/8.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "mega-punch",
+          "url": "https://pokeapi.co/api/v2/move/5/"
+        }
+      },
+      {
+        "move": {
+          "name": "ice-punch",
+          "url": "https://pokeapi.co/api/v2/move/8/"
+        }
+      },
+      {
+        "move": {
+          "name": "mega-kick",
+          "url": "https://pokeapi.co/api/v2/move/25/"
+        }
+      },
+      {
+        "move": {
+          "name": "headbutt",
+          "url": "https://pokeapi.co/api/v2/move/29/"
+        }
+      },
+      {
+        "move": {
+          "name": "tackle",
+          "url": "https://pokeapi.co/api/v2/move/33/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "blastoise",
+    "height": 16,
+    "weight": 855,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/9.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "mega-punch",
+          "url": "https://pokeapi.co/api/v2/move/5/"
+        }
+      },
+      {
+        "move": {
+          "name": "ice-punch",
+          "url": "https://pokeapi.co/api/v2/move/8/"
+        }
+      },
+      {
+        "move": {
+          "name": "mega-kick",
+          "url": "https://pokeapi.co/api/v2/move/25/"
+        }
+      },
+      {
+        "move": {
+          "name": "headbutt",
+          "url": "https://pokeapi.co/api/v2/move/29/"
+        }
+      },
+      {
+        "move": {
+          "name": "tackle",
+          "url": "https://pokeapi.co/api/v2/move/33/"
+        }
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "caterpie",
+    "height": 3,
+    "weight": 29,
+    "sprites": {
+      "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10.png"
+    },
+    "moves": [
+      {
+        "move": {
+          "name": "tackle",
+          "url": "https://pokeapi.co/api/v2/move/33/"
+        }
+      },
+      {
+        "move": {
+          "name": "string-shot",
+          "url": "https://pokeapi.co/api/v2/move/81/"
+        }
+      },
+      {
+        "move": {
+          "name": "snore",
+          "url": "https://pokeapi.co/api/v2/move/173/"
+        }
+      },
+      {
+        "move": {
+          "name": "bug-bite",
+          "url": "https://pokeapi.co/api/v2/move/450/"
+        }
+      },
+      {
+        "move": {
+          "name": "electroweb",
+          "url": "https://pokeapi.co/api/v2/move/527/"
+        }
+      }
+    ]
+  }
+]
