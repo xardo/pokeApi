@@ -1,5 +1,12 @@
 import { GET_POKEMON_BASE_URL } from '@/constants/apiConfig';
 
+export interface PokemonMove {
+  move: {
+    name: string;
+    url: string;
+  };
+}
+
 export interface Pokemon {
   id: number;
   name: string;
@@ -8,14 +15,12 @@ export interface Pokemon {
   sprites: {
     front_default: string | null;
   };
-  moves: {
-    move: {
-      name: string;
-      url: string;
-    };
-  }[];
+  moves: PokemonMove[];
 }
 
+/**
+ * Consulta un Pokémon (por ID del 1 al 10 o por nombre) desde el microservicio en la nube (PostgreSQL)
+ */
 export async function getPokemon(nameOrId: string | number): Promise<Pokemon> {
   const query = String(nameOrId).trim().toLowerCase();
 
@@ -23,55 +28,30 @@ export async function getPokemon(nameOrId: string | number): Promise<Pokemon> {
     throw new Error('Debes escribir el nombre o ID de un Pokémon');
   }
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
 
+  try {
     const baseUrl = GET_POKEMON_BASE_URL();
     const response = await fetch(`${baseUrl}/${query}`, {
       signal: controller.signal,
+      headers: { Accept: 'application/json' },
     });
+
     clearTimeout(timeoutId);
 
     if (response.ok) {
       const data: Pokemon = await response.json();
       return data;
-    } else if (response.status === 404) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.error || 'Pokémon no encontrado');
-    }
-  } catch (err: any) {
-    if (err?.message === 'Pokémon no encontrado') {
-      throw err;
-    }
-  }
-
-  try {
-    const directResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${query}`);
-    if (!directResponse.ok) {
-      if (directResponse.status === 404) {
-        throw new Error('Pokémon no encontrado');
-      }
-      throw new Error('Ocurrió un error al consultar PokeAPI');
     }
 
-    const parsed = await directResponse.json();
-    return {
-      id: parsed.id,
-      name: parsed.name,
-      height: parsed.height,
-      weight: parsed.weight,
-      sprites: {
-        front_default: parsed.sprites?.front_default || null,
-      },
-      moves: (parsed.moves || []).slice(0, 5).map((m: any) => ({
-        move: {
-          name: m.move.name,
-          url: m.move.url,
-        },
-      })),
-    };
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || 'Pokémon no encontrado en la base de datos');
   } catch (err: any) {
-    throw new Error(err.message || 'No se pudo consultar el Pokémon');
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Tiempo de espera agotado al conectar con el microservicio de Pokémon');
+    }
+    throw new Error(err.message || 'Error al conectar con la base de datos de Pokémon');
   }
 }

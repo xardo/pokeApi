@@ -43,10 +43,14 @@ export default function PokemonScreen() {
         setPrevPokemon(null);
       }
 
-      try {
-        const nextData = await getPokemon(data.id + 1);
-        setNextPokemon(nextData);
-      } catch {
+      if (data.id < 10) {
+        try {
+          const nextData = await getPokemon(data.id + 1);
+          setNextPokemon(nextData);
+        } catch {
+          setNextPokemon(null);
+        }
+      } else {
         setNextPokemon(null);
       }
     } catch (err: any) {
@@ -75,7 +79,7 @@ export default function PokemonScreen() {
   };
 
   const handleNext = async () => {
-    if (!pokemon) return;
+    if (!pokemon || pokemon.id >= 10) return;
     await loadPokemon(pokemon.id + 1);
   };
 
@@ -95,7 +99,7 @@ export default function PokemonScreen() {
       <View style={styles.searchRow}>
         <TextInput
           style={styles.input}
-          placeholder="Ej: ditto o 25"
+          placeholder="Ej: bulbasaur o 1-10"
           placeholderTextColor="#999"
           value={search}
           onChangeText={setSearch}
@@ -196,8 +200,12 @@ export default function PokemonScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.navigationButton}
+              style={[
+                styles.navigationButton,
+                pokemon.id >= 10 && styles.disabledButton,
+              ]}
               onPress={handleNext}
+              disabled={pokemon.id >= 10}
               activeOpacity={0.8}
             >
               <Text style={styles.navigationButtonText}>Siguiente</Text>

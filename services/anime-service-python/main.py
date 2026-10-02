@@ -115,8 +115,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Anime Characters Microservice API",
-    description="Microservicio en Python (FastAPI) que consume una base de datos no relacional (Firebase Firestore o MongoDB) con 10 personajes de anime para Pokeanime.",
+    title="API de Personajes de Anime - Microservicio Python",
+    description="Microservicio desarrollado en Python con FastAPI para consultar los 10 personajes de Death Note almacenados en la base de datos no relacional Firebase Cloud Firestore.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -163,22 +163,22 @@ def root():
 
 @app.get(
     "/api/health",
-    tags=["Salud"],
-    summary="Verificar salud del microservicio",
-    description="Retorna el estado de disponibilidad del microservicio y qué base de datos no relacional está activa.",
+    tags=["Estado del Servidor"],
+    summary="Verificar conexión",
+    description="Permite comprobar que el servicio está activo y muestra a qué base de datos no relacional se conectó (Firebase Firestore).",
 )
 def health_check():
     return {
         "status": "ok",
-        "database": f"connected ({db_backend})",
+        "database": f"conectado ({db_backend})",
     }
 
 
 @app.get(
     "/api/characters",
     tags=["Personajes"],
-    summary="Obtener todos los personajes de anime",
-    description="Retorna los 10 personajes almacenados en la base de datos no relacional.",
+    summary="Listar los 10 personajes",
+    description="Retorna la lista completa de los 10 personajes de Death Note guardados en Firebase Cloud Firestore.",
 )
 def get_characters():
     characters = get_all_characters_data()
@@ -188,17 +188,17 @@ def get_characters():
 @app.get(
     "/api/characters/{query}",
     tags=["Personajes"],
-    summary="Buscar personaje por ID, índice o nombre",
-    description="Permite buscar un personaje específico usando su índice (1 a 10), mal_id, o parte de su nombre.",
+    summary="Buscar un personaje",
+    description="Busca un personaje específico por su posición del 1 al 10, por su ID de MyAnimeList (mal_id), o por parte de su nombre (por ejemplo: Lawliet, Yagami, Ryuk, Misa).",
 )
 def get_character_by_query(query: str):
     query_clean = query.strip().lower()
     characters = get_all_characters_data()
 
     if not characters:
-        raise HTTPException(status_code=404, detail="No hay personajes disponibles")
+        raise HTTPException(status_code=404, detail="No hay personajes disponibles en la base de datos")
 
-    # Búsqueda por índice o mal_id numérico
+    # Búsqueda por índice del 1 al 10 o mal_id numérico
     if query_clean.isdigit():
         num = int(query_clean)
         if 1 <= num <= len(characters):
@@ -213,7 +213,7 @@ def get_character_by_query(query: str):
         if query_clean in char_name:
             return {"data": c}
 
-    raise HTTPException(status_code=404, detail=f"Personaje '{query}' no encontrado")
+    raise HTTPException(status_code=404, detail=f"No se encontró el personaje '{query}' en la base de datos")
 
 
 if __name__ == "__main__":

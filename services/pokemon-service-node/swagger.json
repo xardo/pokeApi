@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Pokémon Microservice API",
+    "title": "API de Pokémons - Microservicio Node.js",
     "version": "1.0.0",
-    "description": "Microservicio en Node.js que consume una base de datos relacional PostgreSQL con 10 pokémons para la aplicación Pokeanime."
+    "description": "Microservicio desarrollado en Node.js y Express para consultar los 10 Pokémon almacenados en la base de datos relacional PostgreSQL en Render."
   },
   "servers": [
     {
@@ -11,14 +11,25 @@
       "description": "Servidor actual"
     }
   ],
+  "tags": [
+    {
+      "name": "Pokémon",
+      "description": "Endpoints para consultar los Pokémon de la base de datos"
+    },
+    {
+      "name": "Estado del Servidor",
+      "description": "Verificación del servicio y conexión a la base de datos"
+    }
+  ],
   "paths": {
     "/api/pokemon": {
       "get": {
-        "summary": "Obtener todos los Pokémon almacenados",
-        "description": "Retorna la lista de los 10 Pokémon almacenados en la base de datos relacional.",
+        "tags": ["Pokémon"],
+        "summary": "Listar los 10 Pokémon",
+        "description": "Retorna la lista completa de los 10 Pokémon registrados en la base de datos PostgreSQL.",
         "responses": {
           "200": {
-            "description": "Lista de Pokémon obtenida exitosamente",
+            "description": "Lista de Pokémon obtenida con éxito",
             "content": {
               "application/json": {
                 "schema": {
@@ -31,29 +42,31 @@
             }
           },
           "500": {
-            "description": "Error interno del servidor"
+            "description": "Error al consultar la base de datos"
           }
         }
       }
     },
     "/api/pokemon/{nameOrId}": {
       "get": {
-        "summary": "Obtener un Pokémon por ID o nombre",
-        "description": "Retorna los detalles de un Pokémon específico desde la base de datos relacional.",
+        "tags": ["Pokémon"],
+        "summary": "Buscar un Pokémon",
+        "description": "Busca un Pokémon por su número de ID (del 1 al 10) o por su nombre (por ejemplo: bulbasaur, charmander, squirtle).",
         "parameters": [
           {
             "name": "nameOrId",
             "in": "path",
             "required": true,
-            "description": "ID numérico o nombre del Pokémon (ej: 1, 4, bulbasaur)",
+            "description": "ID numérico (1 a 10) o nombre del Pokémon",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "1"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Pokémon encontrado exitosamente",
+            "description": "Pokémon encontrado con éxito",
             "content": {
               "application/json": {
                 "schema": {
@@ -63,21 +76,43 @@
             }
           },
           "404": {
-            "description": "Pokémon no encontrado"
+            "description": "El Pokémon no existe en la base de datos"
           },
           "500": {
-            "description": "Error del servidor"
+            "description": "Error al consultar la base de datos"
           }
         }
       }
     },
     "/api/health": {
       "get": {
-        "summary": "Health check",
-        "description": "Verifica el estado del servicio y la conexión a la base de datos relacional.",
+        "tags": ["Estado del Servidor"],
+        "summary": "Verificar conexión",
+        "description": "Indica si el servidor está en línea y si está conectado correctamente a PostgreSQL.",
         "responses": {
           "200": {
-            "description": "Servicio saludable"
+            "description": "Servidor funcionando correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "database": {
+                      "type": "string",
+                      "example": "connected (postgresql)"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "example": "2026-10-02T19:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -90,22 +125,27 @@
         "properties": {
           "id": {
             "type": "integer",
+            "description": "Número identificador del Pokémon",
             "example": 1
           },
           "name": {
             "type": "string",
+            "description": "Nombre del Pokémon",
             "example": "bulbasaur"
           },
           "height": {
             "type": "integer",
+            "description": "Altura del Pokémon en decímetros",
             "example": 7
           },
           "weight": {
             "type": "integer",
+            "description": "Peso del Pokémon en hectogramos",
             "example": 69
           },
           "sprites": {
             "type": "object",
+            "description": "Imágenes del Pokémon",
             "properties": {
               "front_default": {
                 "type": "string",
@@ -115,6 +155,7 @@
           },
           "moves": {
             "type": "array",
+            "description": "Lista de movimientos principales",
             "items": {
               "type": "object",
               "properties": {
