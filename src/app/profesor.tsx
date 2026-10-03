@@ -179,7 +179,7 @@ export default function ProfesorScreen() {
                   onPress={() => setViewMode('details')}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.verMasBtnText}>Ver más ➔</Text>
+                  <Text style={styles.verMasBtnText}>Ver más </Text>
                 </TouchableOpacity>
               </View>
             </View>
