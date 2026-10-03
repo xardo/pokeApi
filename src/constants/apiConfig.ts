@@ -31,7 +31,7 @@ export const GET_ANIME_BASE_URL = (): string => {
   }) || 'http://localhost:8000/api/characters';
 };
 
-export const PROFESOR_CLOUD_URL: string = '';
+export const PROFESOR_CLOUD_URL: string = 'https://profesor-service-node.onrender.com';
 
 export const GET_PROFESOR_BASE_URL = (): string => {
   if (PROFESOR_CLOUD_URL && PROFESOR_CLOUD_URL.trim() !== '') {
