@@ -7,7 +7,6 @@ require('dotenv').config();
 const PORT = process.env.PORT || 4000;
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// Conexión a Neon Database (PostgreSQL en la nube)
 const pool = DATABASE_URL
   ? new Pool({
       connectionString: DATABASE_URL,
@@ -15,12 +14,8 @@ const pool = DATABASE_URL
     })
   : null;
 
-// Inicializar la tabla en Neon si no existe
 async function initDB() {
-  if (!pool) {
-    console.log('[Neon DB] DATABASE_URL no configurada en las variables de entorno.');
-    return;
-  }
+  if (!pool) return;
   try {
     const client = await pool.connect();
     await client.query(`
@@ -32,13 +27,11 @@ async function initDB() {
       );
     `);
     client.release();
-    console.log('[Neon DB] Conectado exitosamente y tabla "profesor" verificada.');
   } catch (err) {
-    console.error('[Neon DB] Error al conectar a la base de datos:', err.message);
+    console.error('Error al conectar DB:', err.message);
   }
 }
 
-// Función auxiliar para responder JSON con encabezados CORS
 function responderJSON(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -49,9 +42,7 @@ function responderJSON(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-// Servidor HTTP agnóstico en Node.js puro (sin librerías como Express)
 const server = http.createServer(async (req, res) => {
-  // Manejo de peticiones CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -64,7 +55,6 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = url.pathname;
 
-  // 1. Raíz '/' responde como API en formato JSON
   if (pathname === '/') {
     return responderJSON(res, 200, {
       mensaje: 'API de Profesores Uninpahu',
@@ -79,7 +69,6 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // 2. Swagger UI únicamente en '/docs'
   if (pathname === '/docs' || pathname === '/docs/') {
     const htmlPath = path.join(__dirname, 'swagger.html');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -92,23 +81,20 @@ const server = http.createServer(async (req, res) => {
     return res.end(fs.readFileSync(jsonPath, 'utf8'));
   }
 
-  // 2. Health check
   if (pathname === '/api/health') {
     return responderJSON(res, 200, {
       status: 'ok',
       servicio: 'Docentes Uninpahu',
-      database: pool ? 'conectado (neon postgresql)' : 'desconectado',
+      database: pool ? 'conectado' : 'desconectado',
     });
   }
 
-  // Validar conexión a base de datos
   if (!pool) {
     return responderJSON(res, 500, {
-      error: 'La base de datos no está configurada. Define la variable DATABASE_URL.',
+      error: 'DATABASE_URL no configurada',
     });
   }
 
-  // 3. Path Param: GET /api/profesores/:id
   const pathParts = pathname.split('/').filter(Boolean);
   if (pathParts[0] === 'api' && pathParts[1] === 'profesores' && pathParts[2]) {
     const id = parseInt(pathParts[2], 10);
@@ -117,13 +103,12 @@ const server = http.createServer(async (req, res) => {
       if (resultado.rows.length > 0) {
         return responderJSON(res, 200, resultado.rows[0]);
       }
-      return responderJSON(res, 404, { error: `Profesor con ID ${id} no encontrado en la base de datos` });
+      return responderJSON(res, 404, { error: 'Profesor no encontrado' });
     } catch (err) {
       return responderJSON(res, 500, { error: err.message });
     }
   }
 
-  // 4. Query Params: GET /api/profesores (o ?nombre=...)
   if (pathParts[0] === 'api' && pathParts[1] === 'profesores') {
     const filtroNombre = url.searchParams.get('nombre');
     try {
@@ -147,7 +132,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  console.log(`Servidor de Profesores escuchando en http://localhost:${PORT}`);
-  console.log(`Documentación Swagger en http://localhost:${PORT}/docs`);
+  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  console.log(`Swagger en http://localhost:${PORT}/docs`);
   await initDB();
 });

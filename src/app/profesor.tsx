@@ -56,14 +56,12 @@ export default function ProfesorScreen() {
 
   return (
     <View style={styles.container}>
-      {/* VISTA 1: RESUMEN (BOCETO IZQUIERDO) */}
       {viewMode === 'summary' && (
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Fila del buscador: Input "texto" + Botón "b" */}
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
@@ -98,7 +96,6 @@ export default function ProfesorScreen() {
 
           {currentProfesor && !loading && (
             <View style={styles.cardContainer}>
-              {/* Imagen destacada (Borde azul según boceto) */}
               <View style={styles.mainImageFrame}>
                 {currentProfesor.imagen ? (
                   <Image
@@ -113,7 +110,6 @@ export default function ProfesorScreen() {
                 )}
               </View>
 
-              {/* Caja de Resumen según boceto */}
               <View style={styles.summaryBox}>
                 <Text style={styles.profesorName}>{currentProfesor.nombre}</Text>
                 <Text style={styles.summaryTitle}>Resumen</Text>
@@ -122,7 +118,6 @@ export default function ProfesorScreen() {
                 </Text>
               </View>
 
-              {/* Botón "ver mas" a la derecha */}
               <View style={styles.verMasRow}>
                 {profesores.length > 1 && (
                   <View style={styles.paginationRow}>
@@ -167,10 +162,8 @@ export default function ProfesorScreen() {
         </ScrollView>
       )}
 
-      {/* VISTA 2: TODO EL PERFIL / FORMACIÓN (BOCETO DERECHO) */}
       {viewMode === 'details' && currentProfesor && (
         <View style={styles.detailsContainer}>
-          {/* Imagen superior centrada (Borde azul según boceto) */}
           <View style={styles.detailImageFrame}>
             {currentProfesor.imagen ? (
               <Image
@@ -187,7 +180,6 @@ export default function ProfesorScreen() {
 
           <Text style={styles.detailName}>{currentProfesor.nombre}</Text>
 
-          {/* Caja con Scroll "Todo el Perfil" */}
           <View style={styles.profileBoxContainer}>
             <Text style={styles.profileHeader}>Todo el Perfil</Text>
             <ScrollView
@@ -200,7 +192,6 @@ export default function ProfesorScreen() {
             </ScrollView>
           </View>
 
-          {/* Botón "regresar" abajo a la izquierda según boceto */}
           <View style={styles.regresarRow}>
             <TouchableOpacity
               style={styles.regresarBtn}
