@@ -20,6 +20,7 @@ export default function ProfesorScreen() {
   const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'summary' | 'details'>('summary');
+  const [imageError, setImageError] = useState(false);
 
   const currentProfesor: Profesor | null =
     profesores.length > 0 && currentIndex >= 0 && currentIndex < profesores.length
@@ -29,6 +30,7 @@ export default function ProfesorScreen() {
   const loadData = async (query?: string) => {
     setLoading(true);
     setError('');
+    setImageError(false);
     try {
       const data = await getProfesores(query);
       if (data && data.length > 0) {
@@ -62,29 +64,32 @@ export default function ProfesorScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <Text style={styles.title}>Profesores</Text>
+
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar profesor por nombre..."
-              placeholderTextColor="#888"
+              placeholderTextColor="#999"
               value={search}
               onChangeText={setSearch}
               onSubmitEditing={handleSearch}
               autoCapitalize="none"
+              autoCorrect={false}
             />
             <TouchableOpacity
               style={styles.searchButton}
               onPress={handleSearch}
               activeOpacity={0.8}
             >
-              <Text style={styles.searchButtonText}>b</Text>
+              <Text style={styles.searchButtonText}>Buscar</Text>
             </TouchableOpacity>
           </View>
 
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#FF6F00" />
-              <Text style={styles.loadingText}>Cargando profesor...</Text>
+              <Text style={styles.loadingText}>Cargando información...</Text>
             </View>
           )}
 
@@ -95,58 +100,78 @@ export default function ProfesorScreen() {
           )}
 
           {currentProfesor && !loading && (
-            <View style={styles.cardContainer}>
-              <View style={styles.mainImageFrame}>
-                {currentProfesor.imagen ? (
+            <View style={styles.card}>
+              <View style={styles.badgeRow}>
+                <Text style={styles.idText}>#{currentProfesor.id}</Text>
+              </View>
+
+              <Text style={styles.profesorName}>{currentProfesor.nombre}</Text>
+
+              <View style={styles.imageContainer}>
+                {currentProfesor.imagen && !imageError ? (
                   <Image
                     source={{ uri: currentProfesor.imagen }}
-                    style={styles.mainImage}
-                    resizeMode="cover"
+                    style={styles.profesorImage}
+                    resizeMode="contain"
+                    onError={() => setImageError(true)}
                   />
                 ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <Text style={styles.placeholderText}>Imagen</Text>
+                  <View style={styles.placeholderContainer}>
+                    <Text style={styles.placeholderIcon}>👨‍🏫</Text>
+                    <Text style={styles.placeholderText}>Foto de Docente</Text>
                   </View>
                 )}
               </View>
 
-              <View style={styles.summaryBox}>
-                <Text style={styles.profesorName}>{currentProfesor.nombre}</Text>
-                <Text style={styles.summaryTitle}>Resumen</Text>
+              <View style={styles.summaryContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionDot}>●</Text>
+                  <Text style={styles.sectionTitle}>Resumen de Formación</Text>
+                </View>
                 <Text style={styles.summaryText} numberOfLines={3}>
                   {currentProfesor.formacion}
                 </Text>
               </View>
 
-              <View style={styles.verMasRow}>
-                {profesores.length > 1 && (
+              <View style={styles.footerRow}>
+                {profesores.length > 1 ? (
                   <View style={styles.paginationRow}>
                     <TouchableOpacity
-                      onPress={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+                      onPress={() => {
+                        setImageError(false);
+                        setCurrentIndex((prev) => Math.max(0, prev - 1));
+                      }}
                       disabled={currentIndex === 0}
                       style={[
-                        styles.pageNavBtn,
-                        currentIndex === 0 && styles.pageNavBtnDisabled,
+                        styles.navArrowBtn,
+                        currentIndex === 0 && styles.navArrowBtnDisabled,
                       ]}
+                      activeOpacity={0.7}
                     >
-                      <Text style={styles.pageNavText}>◀</Text>
+                      <Text style={styles.navArrowText}>◀</Text>
                     </TouchableOpacity>
+
                     <Text style={styles.pageIndicator}>
-                      {currentIndex + 1} / {profesores.length}
+                      {currentIndex + 1} de {profesores.length}
                     </Text>
+
                     <TouchableOpacity
-                      onPress={() =>
-                        setCurrentIndex((prev) => Math.min(profesores.length - 1, prev + 1))
-                      }
+                      onPress={() => {
+                        setImageError(false);
+                        setCurrentIndex((prev) => Math.min(profesores.length - 1, prev + 1));
+                      }}
                       disabled={currentIndex === profesores.length - 1}
                       style={[
-                        styles.pageNavBtn,
-                        currentIndex === profesores.length - 1 && styles.pageNavBtnDisabled,
+                        styles.navArrowBtn,
+                        currentIndex === profesores.length - 1 && styles.navArrowBtnDisabled,
                       ]}
+                      activeOpacity={0.7}
                     >
-                      <Text style={styles.pageNavText}>▶</Text>
+                      <Text style={styles.navArrowText}>▶</Text>
                     </TouchableOpacity>
                   </View>
+                ) : (
+                  <View />
                 )}
 
                 <TouchableOpacity
@@ -154,7 +179,7 @@ export default function ProfesorScreen() {
                   onPress={() => setViewMode('details')}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.verMasText}>ver mas</Text>
+                  <Text style={styles.verMasBtnText}>Ver más ➔</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -163,45 +188,55 @@ export default function ProfesorScreen() {
       )}
 
       {viewMode === 'details' && currentProfesor && (
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailImageFrame}>
-            {currentProfesor.imagen ? (
-              <Image
-                source={{ uri: currentProfesor.imagen }}
-                style={styles.detailImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Text style={styles.placeholderText}>imagen</Text>
+        <ScrollView
+          contentContainerStyle={styles.detailsScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.detailsCard}>
+            <View style={styles.avatarContainer}>
+              {currentProfesor.imagen && !imageError ? (
+                <Image
+                  source={{ uri: currentProfesor.imagen }}
+                  style={styles.avatarImage}
+                  resizeMode="contain"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarIcon}>👨‍🏫</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.detailsName}>{currentProfesor.nombre}</Text>
+            <View style={styles.detailBadge}>
+              <Text style={styles.detailBadgeText}>Perfil del Profesor</Text>
+            </View>
+
+            <View style={styles.fullProfileBox}>
+              <View style={styles.profileHeaderRow}>
+                <Text style={styles.profileSectionTitle}>Todo el Perfil</Text>
               </View>
-            )}
-          </View>
 
-          <Text style={styles.detailName}>{currentProfesor.nombre}</Text>
+              <ScrollView
+                style={styles.innerScrollView}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                <Text style={styles.profileLabel}>Formación y Trayectoria Académica:</Text>
+                <Text style={styles.profileBody}>{currentProfesor.formacion}</Text>
+              </ScrollView>
+            </View>
 
-          <View style={styles.profileBoxContainer}>
-            <Text style={styles.profileHeader}>Todo el Perfil</Text>
-            <ScrollView
-              style={styles.profileScrollView}
-              contentContainerStyle={styles.profileScrollContent}
-              showsVerticalScrollIndicator={true}
-            >
-              <Text style={styles.profileSubhead}>Formación Académica y Trayectoria:</Text>
-              <Text style={styles.profileBodyText}>{currentProfesor.formacion}</Text>
-            </ScrollView>
-          </View>
-
-          <View style={styles.regresarRow}>
             <TouchableOpacity
               style={styles.regresarBtn}
               onPress={() => setViewMode('summary')}
               activeOpacity={0.8}
             >
-              <Text style={styles.regresarText}>regresar</Text>
+              <Text style={styles.regresarBtnText}>Regresar</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -210,121 +245,163 @@ export default function ProfesorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F4F6F8',
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 30,
+    padding: 20,
+    paddingBottom: 35,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#222222',
+    marginBottom: 12,
   },
   searchRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-    alignItems: 'center',
+    gap: 10,
+    width: '100%',
   },
   searchInput: {
     flex: 1,
-    height: 48,
-    borderWidth: 2,
-    borderColor: '#333333',
-    borderRadius: 6,
-    paddingHorizontal: 12,
+    height: 50,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+    borderRadius: 10,
+    paddingHorizontal: 15,
     fontSize: 15,
-    color: '#111111',
-    backgroundColor: '#FAFAFA',
+    color: '#222222',
   },
   searchButton: {
-    width: 48,
-    height: 48,
-    borderWidth: 2,
-    borderColor: '#D32F2F',
-    borderRadius: 6,
+    height: 50,
+    paddingHorizontal: 20,
+    backgroundColor: '#FF6F00',
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   searchButtonText: {
-    fontSize: 20,
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    color: '#D32F2F',
+    fontSize: 15,
   },
   loadingContainer: {
-    marginTop: 40,
+    marginTop: 30,
     alignItems: 'center',
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 14,
     color: '#666666',
+    fontSize: 14,
   },
   errorBox: {
+    marginTop: 16,
     backgroundColor: '#FFEBEE',
-    borderWidth: 1,
-    borderColor: '#EF9A9A',
+    borderRadius: 10,
     padding: 12,
-    borderRadius: 6,
-    marginVertical: 12,
   },
   errorText: {
     color: '#C62828',
     textAlign: 'center',
     fontSize: 14,
   },
-  cardContainer: {
+  card: {
+    backgroundColor: '#FFFFFF',
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+    marginBottom: 4,
   },
-  mainImageFrame: {
-    width: '100%',
-    height: 220,
-    borderWidth: 3,
-    borderColor: '#0288D1',
-    borderRadius: 8,
+  idText: {
+    fontSize: 13,
+    color: '#888888',
+    fontWeight: '600',
+  },
+  profesorName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#222222',
+    marginBottom: 14,
+  },
+  imageContainer: {
+    width: 160,
+    height: 160,
+    alignSelf: 'center',
+    borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#E1F5FE',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  mainImage: {
-    width: '100%',
-    height: '100%',
+  profesorImage: {
+    width: 154,
+    height: 154,
   },
-  imagePlaceholder: {
+  placeholderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFF8E1',
   },
-  placeholderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0288D1',
-  },
-  summaryBox: {
-    width: '100%',
-    borderWidth: 2,
-    borderColor: '#333333',
-    borderRadius: 8,
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 14,
-  },
-  profesorName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111111',
+  placeholderIcon: {
+    fontSize: 50,
     marginBottom: 6,
   },
-  summaryTitle: {
+  placeholderText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#E65100',
+  },
+  summaryContainer: {
+    backgroundColor: '#F9FBFD',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E3ECF5',
+    marginBottom: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  sectionDot: {
+    color: '#FF6F00',
+    fontSize: 10,
+  },
+  sectionTitle: {
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#555555',
-    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   summaryText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
     color: '#333333',
   },
-  verMasRow: {
-    width: '100%',
+  footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -335,115 +412,157 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  pageNavBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#EEEEEE',
-    borderRadius: 4,
-  },
-  pageNavBtnDisabled: {
-    opacity: 0.3,
-  },
-  pageNavText: {
-    fontSize: 14,
-    color: '#333333',
-  },
-  pageIndicator: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  verMasBtn: {
-    borderWidth: 2,
-    borderColor: '#2E7D32',
-    borderRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-end',
-  },
-  verMasText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-  },
-  detailsContainer: {
-    flex: 1,
-    padding: 16,
+  navArrowBtn: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#F1F3F5',
+    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  detailImageFrame: {
-    width: 120,
-    height: 120,
-    borderWidth: 3,
-    borderColor: '#0288D1',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#E1F5FE',
-    marginBottom: 10,
+  navArrowBtnDisabled: {
+    opacity: 0.35,
   },
-  detailImage: {
-    width: '100%',
-    height: '100%',
-  },
-  detailName: {
-    fontSize: 18,
+  navArrowText: {
+    fontSize: 13,
+    color: '#333333',
     fontWeight: 'bold',
-    color: '#111111',
-    marginBottom: 12,
-    textAlign: 'center',
   },
-  profileBoxContainer: {
-    flex: 1,
-    width: '100%',
-    borderWidth: 2,
-    borderColor: '#222222',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#FAFAFA',
-    marginBottom: 12,
+  pageIndicator: {
+    fontSize: 13,
+    color: '#666666',
+    fontWeight: '500',
   },
-  profileHeader: {
-    fontSize: 16,
+  verMasBtn: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  verMasBtnText: {
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    color: '#111111',
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDDDDD',
-    paddingBottom: 6,
-  },
-  profileScrollView: {
-    flex: 1,
-  },
-  profileScrollContent: {
-    paddingBottom: 16,
-  },
-  profileSubhead: {
     fontSize: 14,
+  },
+  detailsScrollContent: {
+    padding: 20,
+    paddingBottom: 35,
+  },
+  detailsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  avatarContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#FF6F00',
+    marginBottom: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  avatarImage: {
+    width: 136,
+    height: 136,
+  },
+  avatarPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+  },
+  avatarIcon: {
+    fontSize: 48,
+  },
+  detailsName: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#E65100',
+    color: '#222222',
+    textAlign: 'center',
     marginBottom: 6,
   },
-  profileBodyText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#222222',
+  detailBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 18,
   },
-  regresarRow: {
+  detailBadgeText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  fullProfileBox: {
     width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
+    maxHeight: 280,
+    backgroundColor: '#F9FBFD',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E3ECF5',
+    padding: 16,
+    marginBottom: 20,
   },
-  regresarBtn: {
-    borderWidth: 2,
-    borderColor: '#2E7D32',
-    borderRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+  profileHeaderRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 8,
+    marginBottom: 10,
   },
-  regresarText: {
+  profileSectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#FF6F00',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  innerScrollView: {
+    maxHeight: 200,
+  },
+  profileLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#555555',
+    marginBottom: 6,
+  },
+  profileBody: {
+    fontSize: 14,
+    lineHeight: 23,
+    color: '#222222',
+  },
+  regresarBtn: {
+    alignSelf: 'stretch',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#2E7D32',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  regresarBtnText: {
     color: '#2E7D32',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });

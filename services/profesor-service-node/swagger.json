@@ -13,40 +13,20 @@
   ],
   "tags": [
     {
-      "name": "Docentes",
-      "description": "Consulta de datos de formación de profesores de Uninpahu"
+      "name": "Profesores",
+      "description": "Endpoints para consultar los profesores de la base de datos"
     },
     {
       "name": "Estado del Servidor",
-      "description": "Salud y estado de la conexión a Neon Database"
+      "description": "Salud y estado de la conexión a la base de datos"
     }
   ],
   "paths": {
     "/api/profesores": {
       "get": {
-        "tags": ["Docentes"],
-        "summary": "Listar o filtrar profesores",
-        "description": "Retorna todos los profesores registrados o filtra mediante Query Params (nombre o id).",
-        "parameters": [
-          {
-            "name": "nombre",
-            "in": "query",
-            "required": false,
-            "description": "Filtrar por coincidencia de nombre (Query Param)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "query",
-            "required": false,
-            "description": "Filtrar por ID numérico (Query Param)",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
+        "tags": ["Profesores"],
+        "summary": "Listar todos los profesores",
+        "description": "Retorna la lista completa de todos los profesores guardados en la base de datos.",
         "responses": {
           "200": {
             "description": "Lista de profesores obtenida exitosamente",
