@@ -3,8 +3,8 @@
 Microservicio REST desarrollado en Python con FastAPI y base de datos no relacional en la nube (**Firebase Cloud Firestore** o **MongoDB**), documentado automáticamente con Swagger / OpenAPI.
 
 ## 🚀 Características
-- Almacena y gestiona 10 personajes de anime en una base de datos no relacional (**Firebase Firestore** o MongoDB).
-- Auto-poblado (seeding) de los 10 personajes al iniciar la aplicación.
+- Almacena y gestiona personajes de anime en una base de datos no relacional (**Firebase Firestore** o MongoDB).
+- Sincronización (seeding) de personajes al iniciar la aplicación o mediante script.
 - Fallback automático en memoria si aún no se configuran las credenciales.
 - Documentación Swagger interactiva en `/docs` y ReDoc en `/redoc`.
 - Diseñado para despliegue en **Railway** o **Render**.
@@ -13,8 +13,8 @@ Microservicio REST desarrollado en Python con FastAPI y base de datos no relacio
 - `GET /docs` - Documentación interactiva Swagger UI
 - `GET /redoc` - Documentación ReDoc
 - `GET /api/health` - Estado de salud y base de datos no relacional conectada
-- `GET /api/characters` - Lista de los 10 personajes de anime
-- `GET /api/characters/{query}` - Búsqueda por índice (1 a 10), mal_id o nombre
+- `GET /api/characters` - Lista de todos los personajes de anime
+- `GET /api/characters/{query}` - Búsqueda por posición numérica, mal_id o nombre
 
 ## 🔥 Configuración con Firebase Firestore
 1. Ve a [Firebase Console](https://console.firebase.google.com/) y crea un proyecto.

@@ -59,17 +59,12 @@ def init_firebase():
                 firebase_admin.initialize_app(cred)
             firestore_db = firestore.client()
 
-            # Verificar y sembrar 10 personajes
+            # Sincronizar personajes en Cloud Firestore
             col_ref = firestore_db.collection("characters")
-            existing = list(col_ref.limit(1).stream())
-            if len(existing) == 0:
-                print("[Firebase Firestore] Colección vacía. Insertando 10 personajes...")
-                for item in SEED_CHARACTERS:
-                    char_id = str(item.get("character", {}).get("mal_id", "char"))
-                    col_ref.document(char_id).set(item)
-                print("[Firebase Firestore] 10 personajes insertados exitosamente.")
-            else:
-                print("[Firebase Firestore] Conectado exitosamente a Cloud Firestore.")
+            for item in SEED_CHARACTERS:
+                char_id = str(item.get("character", {}).get("mal_id", "char"))
+                col_ref.document(char_id).set(item, merge=True)
+            print(f"[Firebase Firestore] Conectado y {len(SEED_CHARACTERS)} personajes sincronizados exitosamente.")
 
             db_backend = "firebase firestore"
             return True
@@ -116,7 +111,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="API de Personajes de Anime - Microservicio Python",
-    description="Microservicio desarrollado en Python con FastAPI para consultar los 10 personajes de Death Note almacenados en la base de datos no relacional Firebase Cloud Firestore.",
+    description="Microservicio desarrollado en Python con FastAPI para consultar los personajes de Death Note almacenados en la base de datos no relacional Firebase Cloud Firestore.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -177,8 +172,8 @@ def health_check():
 @app.get(
     "/api/characters",
     tags=["Personajes"],
-    summary="Listar los 10 personajes",
-    description="Retorna la lista completa de los 10 personajes de Death Note guardados en Firebase Cloud Firestore.",
+    summary="Listar todos los personajes",
+    description="Retorna la lista completa de todos los personajes de Death Note guardados en Firebase Cloud Firestore.",
 )
 def get_characters():
     characters = get_all_characters_data()
@@ -189,7 +184,7 @@ def get_characters():
     "/api/characters/{query}",
     tags=["Personajes"],
     summary="Buscar un personaje",
-    description="Busca un personaje específico por su posición del 1 al 10, por su ID de MyAnimeList (mal_id), o por parte de su nombre (por ejemplo: Lawliet, Yagami, Ryuk, Misa).",
+    description="Busca un personaje específico por su posición numérica, por su ID de MyAnimeList (mal_id), o por parte de su nombre (por ejemplo: Lawliet, Yagami, Ryuk, Misa).",
 )
 def get_character_by_query(query: str):
     query_clean = query.strip().lower()
@@ -198,7 +193,7 @@ def get_character_by_query(query: str):
     if not characters:
         raise HTTPException(status_code=404, detail="No hay personajes disponibles en la base de datos")
 
-    # Búsqueda por índice del 1 al 10 o mal_id numérico
+    # Búsqueda por índice o mal_id numérico
     if query_clean.isdigit():
         num = int(query_clean)
         if 1 <= num <= len(characters):

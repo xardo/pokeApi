@@ -32,27 +32,13 @@ export default function PokemonScreen() {
       setPokemon(data);
       setSearch(data.name);
 
-      if (data.id > 1) {
-        try {
-          const prevData = await getPokemon(data.id - 1);
-          setPrevPokemon(prevData);
-        } catch {
-          setPrevPokemon(null);
-        }
-      } else {
-        setPrevPokemon(null);
-      }
+      const [prevResult, nextResult] = await Promise.allSettled([
+        data.id > 1 ? getPokemon(data.id - 1) : Promise.reject(),
+        getPokemon(data.id + 1),
+      ]);
 
-      if (data.id < 10) {
-        try {
-          const nextData = await getPokemon(data.id + 1);
-          setNextPokemon(nextData);
-        } catch {
-          setNextPokemon(null);
-        }
-      } else {
-        setNextPokemon(null);
-      }
+      setPrevPokemon(prevResult.status === 'fulfilled' ? prevResult.value : null);
+      setNextPokemon(nextResult.status === 'fulfilled' ? nextResult.value : null);
     } catch (err: any) {
       setError(err?.message || 'No se pudo consultar el Pokémon');
     } finally {
@@ -79,13 +65,13 @@ export default function PokemonScreen() {
   };
 
   const handleNext = async () => {
-    if (!pokemon || pokemon.id >= 10) return;
-    await loadPokemon(pokemon.id + 1);
+    if (!pokemon || !nextPokemon) return;
+    await loadPokemon(nextPokemon.id);
   };
 
   const handlePrevious = async () => {
-    if (!pokemon || pokemon.id <= 1) return;
-    await loadPokemon(pokemon.id - 1);
+    if (!pokemon || !prevPokemon) return;
+    await loadPokemon(prevPokemon.id);
   };
 
   return (
@@ -99,7 +85,7 @@ export default function PokemonScreen() {
       <View style={styles.searchRow}>
         <TextInput
           style={styles.input}
-          placeholder="Ej: bulbasaur o 1-10"
+          placeholder="Ej: bulbasaur o ID"
           placeholderTextColor="#999"
           value={search}
           onChangeText={setSearch}
@@ -190,10 +176,10 @@ export default function PokemonScreen() {
             <TouchableOpacity
               style={[
                 styles.navigationButton,
-                pokemon.id <= 1 && styles.disabledButton,
+                (!prevPokemon || pokemon.id <= 1) && styles.disabledButton,
               ]}
               onPress={handlePrevious}
-              disabled={pokemon.id <= 1}
+              disabled={!prevPokemon || pokemon.id <= 1}
               activeOpacity={0.8}
             >
               <Text style={styles.navigationButtonText}>Anterior</Text>
@@ -202,10 +188,10 @@ export default function PokemonScreen() {
             <TouchableOpacity
               style={[
                 styles.navigationButton,
-                pokemon.id >= 10 && styles.disabledButton,
+                !nextPokemon && styles.disabledButton,
               ]}
               onPress={handleNext}
-              disabled={pokemon.id >= 10}
+              disabled={!nextPokemon}
               activeOpacity={0.8}
             >
               <Text style={styles.navigationButtonText}>Siguiente</Text>

@@ -12,6 +12,7 @@ export default function RootLayout() {
   const isPokemonDetails = pathname === '/details';
   const isNote = pathname === '/note';
   const isNoteDetails = pathname === '/note-details';
+  const isProfesor = pathname === '/profesor';
 
   return (
     <PokemonProvider>
@@ -57,6 +58,15 @@ export default function RootLayout() {
                 Datos Death Note
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.navButton, isProfesor && styles.navButtonActiveProfesor]}
+              onPress={() => router.replace('/profesor' as any)}
+            >
+              <Text style={[styles.navButtonText, isProfesor && styles.navButtonTextActive]}>
+                Profesor
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </NoteProvider>
@@ -78,12 +88,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#DDDDDD',
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    gap: 6,
+    paddingHorizontal: 6,
+    gap: 4,
   },
   navButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 2,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -96,8 +106,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#E53935',
     borderColor: '#E53935',
   },
+  navButtonActiveProfesor: {
+    backgroundColor: '#FF6F00',
+    borderColor: '#FF6F00',
+  },
   navButtonText: {
-    fontSize: 11,
+    fontSize: 9.5,
     fontWeight: 'bold',
     color: '#555555',
     textAlign: 'center',

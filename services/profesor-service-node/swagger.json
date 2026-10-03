@@ -1,0 +1,145 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API de Docentes Uninpahu - Microservicio Agnóstico Node.js",
+    "version": "1.0.0",
+    "description": "Microservicio desarrollado en Node.js puro sin frameworks (sin Express) conectado a Neon Database (PostgreSQL en la nube). Soporta consultas mediante Path Params y Query Params (sin Body Params)."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Servidor actual"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Docentes",
+      "description": "Consulta de datos de formación de profesores de Uninpahu"
+    },
+    {
+      "name": "Estado del Servidor",
+      "description": "Salud y estado de la conexión a Neon Database"
+    }
+  ],
+  "paths": {
+    "/api/profesores": {
+      "get": {
+        "tags": ["Docentes"],
+        "summary": "Listar o filtrar profesores",
+        "description": "Retorna todos los profesores registrados o filtra mediante Query Params (nombre o id).",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "query",
+            "required": false,
+            "description": "Filtrar por coincidencia de nombre (Query Param)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "description": "Filtrar por ID numérico (Query Param)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de profesores obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Profesor"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error del servidor o de base de datos"
+          }
+        }
+      }
+    },
+    "/api/profesores/{id}": {
+      "get": {
+        "tags": ["Docentes"],
+        "summary": "Obtener profesor por ID",
+        "description": "Obtiene los datos completos y formación de un profesor mediante su ID en la URL (Path Param).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del docente (Path Param)",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profesor encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profesor"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profesor no encontrado"
+          },
+          "500": {
+            "description": "Error al consultar la base de datos"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Estado del Servidor"],
+        "summary": "Verificar salud del microservicio",
+        "description": "Indica el estado del servidor y la conexión a Neon Database.",
+        "responses": {
+          "200": {
+            "description": "Servidor funcionando correctamente"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Profesor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Ing. Carlos Mendoza"
+          },
+          "imagen": {
+            "type": "string",
+            "example": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500"
+          },
+          "formacion": {
+            "type": "string",
+            "example": "Ingeniero de Sistemas y Magíster en Ingeniería de Software. Docente líder en Uninpahu."
+          }
+        }
+      }
+    }
+  }
+}

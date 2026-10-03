@@ -3,7 +3,7 @@
   "info": {
     "title": "API de Pokémons - Microservicio Node.js",
     "version": "1.0.0",
-    "description": "Microservicio desarrollado en Node.js y Express para consultar los 10 Pokémon almacenados en la base de datos relacional PostgreSQL en Render."
+    "description": "Microservicio desarrollado en Node.js y Express para consultar los Pokémon almacenados en la base de datos relacional PostgreSQL en Render."
   },
   "servers": [
     {
@@ -25,8 +25,8 @@
     "/api/pokemon": {
       "get": {
         "tags": ["Pokémon"],
-        "summary": "Listar los 10 Pokémon",
-        "description": "Retorna la lista completa de los 10 Pokémon registrados en la base de datos PostgreSQL.",
+        "summary": "Listar todos los Pokémon",
+        "description": "Retorna la lista completa de todos los Pokémon registrados en la base de datos PostgreSQL.",
         "responses": {
           "200": {
             "description": "Lista de Pokémon obtenida con éxito",
@@ -51,13 +51,13 @@
       "get": {
         "tags": ["Pokémon"],
         "summary": "Buscar un Pokémon",
-        "description": "Busca un Pokémon por su número de ID (del 1 al 10) o por su nombre (por ejemplo: bulbasaur, charmander, squirtle).",
+        "description": "Busca un Pokémon por su número de ID o por su nombre (por ejemplo: bulbasaur, charmander, squirtle).",
         "parameters": [
           {
             "name": "nameOrId",
             "in": "path",
             "required": true,
-            "description": "ID numérico (1 a 10) o nombre del Pokémon",
+            "description": "ID numérico o nombre del Pokémon",
             "schema": {
               "type": "string",
               "example": "1"

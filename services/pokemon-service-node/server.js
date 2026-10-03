@@ -50,23 +50,26 @@ async function initDatabase() {
       );
     `);
 
+    let nuevos = 0;
+    for (const p of seedPokemons) {
+      const res = await client.query(
+        `INSERT INTO pokemons (id, name, height, weight, sprites, moves)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (id) DO UPDATE SET
+           name = EXCLUDED.name,
+           height = EXCLUDED.height,
+           weight = EXCLUDED.weight,
+           sprites = EXCLUDED.sprites,
+           moves = EXCLUDED.moves
+         RETURNING (xmax = 0) AS fue_insertado;`,
+        [p.id, p.name.toLowerCase().trim(), p.height, p.weight, JSON.stringify(p.sprites), JSON.stringify(p.moves)]
+      );
+      if (res.rows[0]?.fue_insertado) nuevos++;
+    }
+
     const countRes = await client.query('SELECT COUNT(*) FROM pokemons;');
     const count = parseInt(countRes.rows[0].count, 10);
-
-    if (count === 0) {
-      console.log('[PostgreSQL] Tabla vacía. Insertando 10 Pokémon iniciales...');
-      for (const p of seedPokemons) {
-        await client.query(
-          `INSERT INTO pokemons (id, name, height, weight, sprites, moves)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (id) DO NOTHING;`,
-          [p.id, p.name, p.height, p.weight, JSON.stringify(p.sprites), JSON.stringify(p.moves)]
-        );
-      }
-      console.log('[PostgreSQL] 10 Pokémon insertados exitosamente.');
-    } else {
-      console.log(`[PostgreSQL] La base de datos ya contiene ${count} Pokémon.`);
-    }
+    console.log(`[PostgreSQL] Base de datos sincronizada: ${count} Pokémon en total (${nuevos} nuevos insertados).`);
 
     client.release();
     useDatabase = true;
@@ -93,7 +96,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// List all 10 pokemons
+// List all pokemons
 app.get('/api/pokemon', async (req, res) => {
   try {
     if (useDatabase && pool) {

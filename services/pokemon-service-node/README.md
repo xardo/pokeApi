@@ -3,8 +3,8 @@
 Microservicio REST desarrollado en Node.js y Express con base de datos relacional PostgreSQL y documentación interactiva Swagger (OpenAPI 3.0).
 
 ## 🚀 Características
-- Almacena y gestiona 10 Pokémon en PostgreSQL.
-- Auto-creación de tablas y auto-poblado (seeding) de los 10 Pokémon al iniciar.
+- Almacena y gestiona los Pokémon en PostgreSQL.
+- Auto-creación de tablas y sincronización (seeding) de los Pokémon al iniciar.
 - Fallback automático en memoria si aún no se ha configurado la base de datos en la nube.
 - Documentación Swagger UI en `/docs`.
 - Diseñado para despliegue inmediato en **Render** o **Railway**.
@@ -12,7 +12,7 @@ Microservicio REST desarrollado en Node.js y Express con base de datos relaciona
 ## 📡 Endpoints
 - `GET /docs` - Documentación interactiva Swagger
 - `GET /api/health` - Estado de salud y conexión a PostgreSQL
-- `GET /api/pokemon` - Listado de los 10 Pokémon
+- `GET /api/pokemon` - Listado de todos los Pokémon
 - `GET /api/pokemon/:nameOrId` - Búsqueda de Pokémon por ID o nombre
 
 ## 🛠️ Ejecución Local

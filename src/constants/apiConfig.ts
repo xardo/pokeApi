@@ -30,3 +30,20 @@ export const GET_ANIME_BASE_URL = (): string => {
     default: 'http://localhost:8000/api/characters',
   }) || 'http://localhost:8000/api/characters';
 };
+
+export const PROFESOR_CLOUD_URL: string = '';
+
+export const GET_PROFESOR_BASE_URL = (): string => {
+  if (PROFESOR_CLOUD_URL && PROFESOR_CLOUD_URL.trim() !== '') {
+    return `${PROFESOR_CLOUD_URL.replace(/\/$/, '')}/api/profesores`;
+  }
+  return Platform.select({
+    android: 'http://10.0.2.2:4000/api/profesores',
+    default: 'http://localhost:4000/api/profesores',
+  }) || 'http://localhost:4000/api/profesores';
+};
+
+// Aliases para compatibilidad
+export const DOCENTE_CLOUD_URL = PROFESOR_CLOUD_URL;
+export const GET_DOCENTE_BASE_URL = GET_PROFESOR_BASE_URL;
+

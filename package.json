@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/ui": "~57.0.19",
     "expo": "~57.0.24",
+    "expo-asset": "^57.0.18",
     "expo-constants": "~57.0.19",
     "expo-device": "~57.0.2",
     "expo-font": "~57.0.4",
@@ -41,6 +42,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "seed:pokemon": "node ./services/pokemon-service-node/seed.js",
+    "seed:anime": "python ./services/anime-service-python/seed_firebase.py",
+    "server:profesor": "node ./services/profesor-service-node/server.js",
     "zip": "powershell -ExecutionPolicy Bypass -File ./scripts/create-submission-zip.ps1"
   },
   "private": true
