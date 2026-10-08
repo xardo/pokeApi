@@ -10,32 +10,11 @@ try {
   const pg = require('pg');
   Pool = pg.Pool;
 } catch (e) {
-  console.log('ℹ️ Modo memoria local activo en microservicio de consulta.');
+  console.error('❌ Error: Módulo "pg" no encontrado.');
 }
 
 const PORT = process.env.PORT || 4001;
 const DATABASE_URL = process.env.DATABASE_URL;
-
-let inMemoryProfesores = [
-  {
-    id: 1,
-    nombre: 'Dr. Carlos Mendoza',
-    imagen: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-    formacion: 'Doctor en Ciencias de la Computación e Inteligencia Artificial. Magíster en Ingeniería de Software. Más de 12 años de experiencia como docente investigador en Uninpahu.'
-  },
-  {
-    id: 2,
-    nombre: 'Dra. Mariana Restrepo',
-    imagen: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500',
-    formacion: 'Doctora en Robótica y Sistemas Autónomos. Especialista en Desarrollo Móvil y Cloud Computing. Líder del semillero de desarrollo móvil en Uninpahu.'
-  },
-  {
-    id: 3,
-    nombre: 'Ing. Felipe Valencia',
-    imagen: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
-    formacion: 'Magíster en Seguridad de la Información y Arquitecto de Microservicios Cloud. Docente titular del área de Bases de Datos y Backend en Uninpahu.'
-  }
-];
 
 const pool = (DATABASE_URL && Pool)
   ? new Pool({
@@ -45,7 +24,10 @@ const pool = (DATABASE_URL && Pool)
   : null;
 
 async function initDB() {
-  if (!pool) return;
+  if (!pool) {
+    console.error('DATABASE_URL no configurada.');
+    return;
+  }
   try {
     const client = await pool.connect();
     await client.query(`
@@ -56,19 +38,10 @@ async function initDB() {
         formacion TEXT NOT NULL
       );
     `);
-    const countRes = await client.query('SELECT COUNT(*) FROM profesor;');
-    if (parseInt(countRes.rows[0].count, 10) === 0) {
-      for (const p of inMemoryProfesores) {
-        await client.query(
-          'INSERT INTO profesor (nombre, imagen, formacion) VALUES ($1, $2, $3);',
-          [p.nombre, p.imagen, p.formacion]
-        );
-      }
-    }
     client.release();
-    console.log('✅ Microservicio de CONSULTA conectado a PostgreSQL/Neon');
+    console.log('Servicio de consulta conectado a Neon Database');
   } catch (err) {
-    console.error('❌ Error DB Consulta:', err.message);
+    console.error('Error al inicializar tabla:', err.message);
   }
 }
 
@@ -122,14 +95,21 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/health' && req.method === 'GET') {
-    return responderJSON(res, 200, {
-      status: 'ok',
+    return responderJSON(res, pool ? 200 : 503, {
+      status: pool ? 'ok' : 'error',
       microservicio: 'Consulta de Docentes (READ)',
-      database: pool ? 'Neon / PostgreSQL Conectado' : 'Memoria local'
+      database: pool ? 'Neon / PostgreSQL Conectado' : 'Sin conexión a base de datos'
     });
   }
 
   const pathParts = pathname.split('/').filter(Boolean);
+
+  // Verificación estricta de base de datos Neon: Sin datos de respaldo falsos
+  if (!pool) {
+    return responderJSON(res, 503, {
+      error: 'Error de conexión: La base de datos de Neon no está disponible o DATABASE_URL no fue configurada.'
+    });
+  }
 
   // GET /api/profesores/:id
   if (pathParts[0] === 'api' && pathParts[1] === 'profesores' && pathParts[2] && req.method === 'GET') {
@@ -138,16 +118,13 @@ const server = http.createServer(async (req, res) => {
       return responderJSON(res, 400, { error: 'El ID debe ser un número entero.' });
     }
     try {
-      if (pool) {
-        const resultado = await pool.query('SELECT * FROM profesor WHERE id = $1;', [id]);
-        if (resultado.rows.length > 0) return responderJSON(res, 200, resultado.rows[0]);
-      } else {
-        const prof = inMemoryProfesores.find(p => p.id === id);
-        if (prof) return responderJSON(res, 200, prof);
+      const resultado = await pool.query('SELECT * FROM profesor WHERE id = $1;', [id]);
+      if (resultado.rows.length > 0) {
+        return responderJSON(res, 200, resultado.rows[0]);
       }
-      return responderJSON(res, 404, { error: `Docente con ID ${id} no encontrado.` });
+      return responderJSON(res, 404, { error: `Docente con ID ${id} no encontrado en Neon Database.` });
     } catch (err) {
-      return responderJSON(res, 500, { error: err.message });
+      return responderJSON(res, 500, { error: `Error al consultar Neon Database: ${err.message}` });
     }
   }
 
@@ -155,25 +132,17 @@ const server = http.createServer(async (req, res) => {
   if (pathParts[0] === 'api' && pathParts[1] === 'profesores' && pathParts.length === 2 && req.method === 'GET') {
     const filtroNombre = url.searchParams.get('nombre');
     try {
-      if (pool) {
-        let sql = 'SELECT * FROM profesor';
-        const params = [];
-        if (filtroNombre && filtroNombre.trim() !== '') {
-          sql += ' WHERE LOWER(nombre) LIKE $1';
-          params.push(`%${filtroNombre.toLowerCase().trim()}%`);
-        }
-        sql += ' ORDER BY id ASC;';
-        const resultado = await pool.query(sql, params);
-        return responderJSON(res, 200, resultado.rows);
-      } else {
-        let lista = [...inMemoryProfesores];
-        if (filtroNombre && filtroNombre.trim() !== '') {
-          lista = lista.filter(p => p.nombre.toLowerCase().includes(filtroNombre.toLowerCase().trim()));
-        }
-        return responderJSON(res, 200, lista);
+      let sql = 'SELECT * FROM profesor';
+      const params = [];
+      if (filtroNombre && filtroNombre.trim() !== '') {
+        sql += ' WHERE LOWER(nombre) LIKE $1';
+        params.push(`%${filtroNombre.toLowerCase().trim()}%`);
       }
+      sql += ' ORDER BY id ASC;';
+      const resultado = await pool.query(sql, params);
+      return responderJSON(res, 200, resultado.rows);
     } catch (err) {
-      return responderJSON(res, 500, { error: err.message });
+      return responderJSON(res, 500, { error: `Error al consultar Neon Database: ${err.message}` });
     }
   }
 
@@ -181,7 +150,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  console.log(`🔍 [Microservicio Consulta Docentes] Activo en http://localhost:${PORT}`);
-  console.log(`📖 Swagger UI en http://localhost:${PORT}/docs`);
+  console.log(`Servidor de consulta corriendo en http://localhost:${PORT}`);
+  console.log(`Swagger en http://localhost:${PORT}/docs`);
   await initDB();
 });

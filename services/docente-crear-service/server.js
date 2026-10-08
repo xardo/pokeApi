@@ -10,13 +10,11 @@ try {
   const pg = require('pg');
   Pool = pg.Pool;
 } catch (e) {
-  console.log('ℹ️ Modo memoria local activo en microservicio de creación.');
+  console.error('❌ Error: Módulo "pg" no encontrado.');
 }
 
 const PORT = process.env.PORT || 4002;
 const DATABASE_URL = process.env.DATABASE_URL;
-
-let nextMemoryId = 100;
 
 const pool = (DATABASE_URL && Pool)
   ? new Pool({
@@ -26,7 +24,10 @@ const pool = (DATABASE_URL && Pool)
   : null;
 
 async function initDB() {
-  if (!pool) return;
+  if (!pool) {
+    console.error('DATABASE_URL no configurada.');
+    return;
+  }
   try {
     const client = await pool.connect();
     await client.query(`
@@ -38,9 +39,9 @@ async function initDB() {
       );
     `);
     client.release();
-    console.log('✅ Microservicio de CREACIÓN conectado a PostgreSQL/Neon');
+    console.log('Servicio de creacion conectado a Neon Database');
   } catch (err) {
-    console.error('❌ Error DB Creación:', err.message);
+    console.error('Error al inicializar tabla:', err.message);
   }
 }
 
@@ -108,10 +109,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/health' && req.method === 'GET') {
-    return responderJSON(res, 200, {
-      status: 'ok',
+    return responderJSON(res, pool ? 200 : 503, {
+      status: pool ? 'ok' : 'error',
       microservicio: 'Creación de Docentes (CREATE)',
-      database: pool ? 'Neon / PostgreSQL Conectado' : 'Memoria local'
+      database: pool ? 'Neon / PostgreSQL Conectado' : 'Sin conexión a base de datos'
+    });
+  }
+
+  // Verificación estricta de base de datos Neon: Sin datos de respaldo falsos
+  if (!pool) {
+    return responderJSON(res, 503, {
+      error: 'Error de conexión: La base de datos de Neon no está disponible o DATABASE_URL no fue configurada.'
     });
   }
 
@@ -123,27 +131,17 @@ const server = http.createServer(async (req, res) => {
 
       if (!nombre || !nombre.trim() || !imagen || !imagen.trim() || !formacion || !formacion.trim()) {
         return responderJSON(res, 400, {
-          error: 'Los campos "nombre", "imagen" y "formacion" son obligatorios.'
+          error: 'Los campos "nombre", "imagen" y "formacion" son obligatorios para registrar en Neon Database.'
         });
       }
 
-      if (pool) {
-        const resultado = await pool.query(
-          'INSERT INTO profesor (nombre, imagen, formacion) VALUES ($1, $2, $3) RETURNING *;',
-          [nombre.trim(), imagen.trim(), formacion.trim()]
-        );
-        return responderJSON(res, 201, resultado.rows[0]);
-      } else {
-        const nuevo = {
-          id: nextMemoryId++,
-          nombre: nombre.trim(),
-          imagen: imagen.trim(),
-          formacion: formacion.trim(),
-        };
-        return responderJSON(res, 201, nuevo);
-      }
+      const resultado = await pool.query(
+        'INSERT INTO profesor (nombre, imagen, formacion) VALUES ($1, $2, $3) RETURNING *;',
+        [nombre.trim(), imagen.trim(), formacion.trim()]
+      );
+      return responderJSON(res, 201, resultado.rows[0]);
     } catch (err) {
-      return responderJSON(res, 500, { error: err.message });
+      return responderJSON(res, 500, { error: `Error al insertar en Neon Database: ${err.message}` });
     }
   }
 
@@ -151,7 +149,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  console.log(`➕ [Microservicio Crear Docente] Activo en http://localhost:${PORT}`);
-  console.log(`📖 Swagger UI en http://localhost:${PORT}/docs`);
+  console.log(`Servidor de creacion corriendo en http://localhost:${PORT}`);
+  console.log(`Swagger en http://localhost:${PORT}/docs`);
   await initDB();
 });

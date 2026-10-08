@@ -5,7 +5,6 @@ import {
   Image,
   Keyboard,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,10 +30,8 @@ export default function ProfesorScreen() {
   const [viewMode, setViewMode] = useState<'summary' | 'details'>('summary');
   const [imageError, setImageError] = useState(false);
 
-  // Estados para retroalimentación visual (Banner de éxito)
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
 
-  // Estados del Modal Formulario (Crear y Actualizar)
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedProfesorId, setSelectedProfesorId] = useState<number | null>(null);
@@ -45,7 +42,6 @@ export default function ProfesorScreen() {
   const [formError, setFormError] = useState('');
   const [previewError, setPreviewError] = useState(false);
 
-  // Estado del Modal de Confirmación de Eliminación
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [profesorToDelete, setProfesorToDelete] = useState<Profesor | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -56,10 +52,10 @@ export default function ProfesorScreen() {
       : null;
 
   const showNotification = (msg: string) => {
-    setSuccessBanner(msg);
+    setNotification(msg);
     setTimeout(() => {
-      setSuccessBanner(null);
-    }, 3500);
+      setNotification(null);
+    }, 3000);
   };
 
   const loadData = async (query?: string, keepSelectionId?: number) => {
@@ -85,7 +81,8 @@ export default function ProfesorScreen() {
         }
       }
     } catch (err: any) {
-      setError(err?.message || 'Error al conectar con el microservicio de docentes.');
+      setProfesores([]);
+      setError(err?.message || 'Error al conectar con la base de datos.');
     } finally {
       setLoading(false);
     }
@@ -106,7 +103,6 @@ export default function ProfesorScreen() {
     loadData('');
   };
 
-  // Abrir Modal para Crear
   const handleOpenCreateModal = () => {
     setModalMode('create');
     setSelectedProfesorId(null);
@@ -118,7 +114,6 @@ export default function ProfesorScreen() {
     setModalVisible(true);
   };
 
-  // Abrir Modal para Editar
   const handleOpenEditModal = (prof: Profesor) => {
     setModalMode('edit');
     setSelectedProfesorId(prof.id);
@@ -130,18 +125,17 @@ export default function ProfesorScreen() {
     setModalVisible(true);
   };
 
-  // Guardar (Crear o Actualizar)
   const handleSubmitForm = async () => {
     if (!formNombre.trim()) {
-      setFormError('Por favor ingresa el nombre completo del docente.');
+      setFormError('Ingresa el nombre del docente.');
       return;
     }
     if (!formImagen.trim()) {
-      setFormError('Por favor ingresa la URL de la imagen del docente.');
+      setFormError('Ingresa la URL de la imagen.');
       return;
     }
     if (!formFormacion.trim()) {
-      setFormError('Por favor describe la formación académica del docente.');
+      setFormError('Ingresa la formación académica.');
       return;
     }
 
@@ -156,7 +150,7 @@ export default function ProfesorScreen() {
           formacion: formFormacion.trim(),
         });
         setModalVisible(false);
-        showNotification(`✅ Docente "${nuevo.nombre}" creado exitosamente.`);
+        showNotification('Docente registrado correctamente.');
         await loadData(search.trim(), nuevo.id);
       } else if (modalMode === 'edit' && selectedProfesorId !== null) {
         const actualizado = await updateProfesor(selectedProfesorId, {
@@ -165,17 +159,16 @@ export default function ProfesorScreen() {
           formacion: formFormacion.trim(),
         });
         setModalVisible(false);
-        showNotification(`✅ Docente "${actualizado.nombre}" actualizado exitosamente.`);
+        showNotification('Docente actualizado correctamente.');
         await loadData(search.trim(), actualizado.id);
       }
     } catch (err: any) {
-      setFormError(err?.message || 'Error al guardar los datos del docente.');
+      setFormError(err?.message || 'Error al guardar los datos.');
     } finally {
       setFormSubmitting(false);
     }
   };
 
-  // Confirmar y Ejecutar Eliminación
   const handlePromptDelete = (prof: Profesor) => {
     setProfesorToDelete(prof);
     setDeleteModalVisible(true);
@@ -187,7 +180,7 @@ export default function ProfesorScreen() {
     try {
       await deleteProfesor(profesorToDelete.id);
       setDeleteModalVisible(false);
-      showNotification(`🗑️ Docente "${profesorToDelete.nombre}" eliminado correctamente.`);
+      showNotification('Docente eliminado correctamente.');
       setProfesorToDelete(null);
       await loadData(search.trim());
     } catch (err: any) {
@@ -199,27 +192,22 @@ export default function ProfesorScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Banner de Éxito Flotante */}
-      {successBanner && (
-        <View style={styles.successBanner}>
-          <Text style={styles.successBannerText}>{successBanner}</Text>
+      {notification && (
+        <View style={styles.notificationBanner}>
+          <Text style={styles.notificationText}>{notification}</Text>
         </View>
       )}
 
-      {/* ======================================================== */}
-      {/* VISTA RESUMEN (TARJETA PRINCIPAL + NAVEGACIÓN CRUD)     */}
-      {/* ======================================================== */}
       {viewMode === 'summary' && (
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Encabezado Superior con Botón "+ Crear" */}
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.title}>Gestión de Docentes</Text>
-              <Text style={styles.subtitle}>Microservicio CRUD Uninpahu</Text>
+              <Text style={styles.title}>Docentes</Text>
+              <Text style={styles.subtitle}>Gestión académica</Text>
             </View>
 
             <TouchableOpacity
@@ -227,15 +215,14 @@ export default function ProfesorScreen() {
               onPress={handleOpenCreateModal}
               activeOpacity={0.8}
             >
-              <Text style={styles.createButtonText}>+ Nuevo</Text>
+              <Text style={styles.createButtonText}>Nuevo</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Barra de Búsqueda */}
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Buscar docente por nombre..."
+              placeholder="Buscar por nombre..."
               placeholderTextColor="#888"
               value={search}
               onChangeText={setSearch}
@@ -249,7 +236,7 @@ export default function ProfesorScreen() {
                 onPress={handleClearSearch}
                 activeOpacity={0.7}
               >
-                <Text style={styles.clearSearchText}>✕</Text>
+                <Text style={styles.clearSearchText}>Limpiar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -261,90 +248,55 @@ export default function ProfesorScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Selector de Chips de Docentes */}
-          {profesores.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipsScroll}
-            >
-              {profesores.map((p, index) => {
-                const isSelected = index === currentIndex;
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[styles.chip, isSelected && styles.chipSelected]}
-                    onPress={() => {
-                      setImageError(false);
-                      setCurrentIndex(index);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[styles.chipText, isSelected && styles.chipTextSelected]}
-                      numberOfLines={1}
-                    >
-                      #{p.id} {p.nombre.split(' ')[0]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
-
-          {/* Indicador de Carga */}
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#FF6F00" />
-              <Text style={styles.loadingText}>Conectando con el microservicio...</Text>
+              <Text style={styles.loadingText}>Cargando...</Text>
             </View>
           )}
 
-          {/* Mensaje de Error */}
           {error !== '' && !loading && (
             <View style={styles.errorBox}>
+              <Text style={styles.errorTitle}>Error de conexión</Text>
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity
                 style={styles.retryButton}
-                onPress={() => loadData()}
+                onPress={() => loadData(search.trim())}
                 activeOpacity={0.8}
               >
-                <Text style={styles.retryButtonText}>Recargar Lista</Text>
+                <Text style={styles.retryButtonText}>Reintentar</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Tarjeta de Docente */}
           {currentProfesor && !loading && (
             <View style={styles.card}>
               <View style={styles.cardTopRow}>
                 <View style={styles.badgeId}>
-                  <Text style={styles.idText}>Docente #{currentProfesor.id}</Text>
+                  <Text style={styles.idText}>ID: {currentProfesor.id}</Text>
                 </View>
 
-                {/* Acciones de Edición y Eliminación en Cabecera */}
                 <View style={styles.actionIconsRow}>
                   <TouchableOpacity
-                    style={styles.editIconBtn}
+                    style={styles.editBtn}
                     onPress={() => handleOpenEditModal(currentProfesor)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.actionIconText}>✏️ Editar</Text>
+                    <Text style={styles.editBtnText}>Editar</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.deleteIconBtn}
+                    style={styles.deleteBtn}
                     onPress={() => handlePromptDelete(currentProfesor)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.deleteIconText}>🗑️</Text>
+                    <Text style={styles.deleteBtnText}>Eliminar</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <Text style={styles.profesorName}>{currentProfesor.nombre}</Text>
 
-              {/* Imagen del Docente */}
               <View style={styles.imageContainer}>
                 {currentProfesor.imagen && !imageError ? (
                   <Image
@@ -355,24 +307,18 @@ export default function ProfesorScreen() {
                   />
                 ) : (
                   <View style={styles.placeholderContainer}>
-                    <Text style={styles.placeholderIcon}>👨‍🏫</Text>
-                    <Text style={styles.placeholderText}>Foto de Docente</Text>
+                    <Text style={styles.placeholderText}>Sin imagen disponible</Text>
                   </View>
                 )}
               </View>
 
-              {/* Resumen de Formación */}
               <View style={styles.summaryContainer}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionDot}>●</Text>
-                  <Text style={styles.sectionTitle}>Formación y Perfil Académico</Text>
-                </View>
+                <Text style={styles.sectionTitle}>Formación académica</Text>
                 <Text style={styles.summaryText} numberOfLines={3}>
                   {currentProfesor.formacion}
                 </Text>
               </View>
 
-              {/* Paginación y Botón "Ver más" */}
               <View style={styles.footerRow}>
                 {profesores.length > 1 ? (
                   <View style={styles.paginationRow}>
@@ -388,7 +334,7 @@ export default function ProfesorScreen() {
                       ]}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.navArrowText}>◀</Text>
+                      <Text style={styles.navArrowText}>Anterior</Text>
                     </TouchableOpacity>
 
                     <Text style={styles.pageIndicator}>
@@ -407,7 +353,7 @@ export default function ProfesorScreen() {
                       ]}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.navArrowText}>▶</Text>
+                      <Text style={styles.navArrowText}>Siguiente</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -419,7 +365,7 @@ export default function ProfesorScreen() {
                   onPress={() => setViewMode('details')}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.verMasBtnText}>Ver más detalle</Text>
+                  <Text style={styles.verMasBtnText}>Ver detalle</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -427,9 +373,6 @@ export default function ProfesorScreen() {
         </ScrollView>
       )}
 
-      {/* ======================================================== */}
-      {/* VISTA DETALLES COMPLETOS DEL DOCENTE                    */}
-      {/* ======================================================== */}
       {viewMode === 'details' && currentProfesor && (
         <ScrollView
           contentContainerStyle={styles.detailsScrollContent}
@@ -446,24 +389,23 @@ export default function ProfesorScreen() {
                 />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarIcon}>👨‍🏫</Text>
+                  <Text style={styles.placeholderText}>Sin imagen</Text>
                 </View>
               )}
             </View>
 
             <Text style={styles.detailsName}>{currentProfesor.nombre}</Text>
             <View style={styles.detailBadge}>
-              <Text style={styles.detailBadgeText}>Perfil del Docente #{currentProfesor.id}</Text>
+              <Text style={styles.detailBadgeText}>Docente #{currentProfesor.id}</Text>
             </View>
 
-            {/* Acciones Rápidas en Vista Detalle */}
             <View style={styles.detailActionsRow}>
               <TouchableOpacity
                 style={styles.detailEditBtn}
                 onPress={() => handleOpenEditModal(currentProfesor)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.detailEditBtnText}>✏️ Editar Datos</Text>
+                <Text style={styles.detailEditBtnText}>Editar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -471,15 +413,12 @@ export default function ProfesorScreen() {
                 onPress={() => handlePromptDelete(currentProfesor)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.detailDeleteBtnText}>🗑️ Eliminar</Text>
+                <Text style={styles.detailDeleteBtnText}>Eliminar</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.fullProfileBox}>
-              <View style={styles.profileHeaderRow}>
-                <Text style={styles.profileSectionTitle}>Trayectoria y Formación Completa</Text>
-              </View>
-
+              <Text style={styles.profileSectionTitle}>Perfil y trayectoria</Text>
               <ScrollView
                 style={styles.innerScrollView}
                 showsVerticalScrollIndicator={true}
@@ -494,15 +433,12 @@ export default function ProfesorScreen() {
               onPress={() => setViewMode('summary')}
               activeOpacity={0.8}
             >
-              <Text style={styles.regresarBtnText}>◀ Regresar a la Lista</Text>
+              <Text style={styles.regresarBtnText}>Volver</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL FORMULARIO: CREAR Y ACTUALIZAR DOCENTE            */}
-      {/* ======================================================== */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -513,14 +449,14 @@ export default function ProfesorScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {modalMode === 'create' ? '➕ Registrar Nuevo Docente' : '✏️ Actualizar Docente'}
+                {modalMode === 'create' ? 'Nuevo docente' : 'Editar docente'}
               </Text>
               <TouchableOpacity
                 onPress={() => !formSubmitting && setModalVisible(false)}
                 disabled={formSubmitting}
                 style={styles.modalCloseBtn}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Text style={styles.modalCloseText}>Cerrar</Text>
               </TouchableOpacity>
             </View>
 
@@ -531,19 +467,17 @@ export default function ProfesorScreen() {
                 </View>
               )}
 
-              {/* Campo Nombre */}
-              <Text style={styles.label}>Nombre y Título del Docente *</Text>
+              <Text style={styles.label}>Nombre</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej: Dr. Carlos Mendoza"
+                placeholder="Nombre completo"
                 placeholderTextColor="#999"
                 value={formNombre}
                 onChangeText={setFormNombre}
                 autoCapitalize="words"
               />
 
-              {/* Campo URL Imagen */}
-              <Text style={styles.label}>URL de la Fotografía *</Text>
+              <Text style={styles.label}>URL de la imagen</Text>
               <TextInput
                 style={styles.input}
                 placeholder="https://ejemplo.com/foto.jpg"
@@ -557,10 +491,9 @@ export default function ProfesorScreen() {
                 autoCorrect={false}
               />
 
-              {/* Vista Previa de la Fotografía */}
               {formImagen.trim() !== '' && (
                 <View style={styles.previewContainer}>
-                  <Text style={styles.previewLabel}>Vista previa de la foto:</Text>
+                  <Text style={styles.previewLabel}>Vista previa:</Text>
                   {!previewError ? (
                     <Image
                       source={{ uri: formImagen.trim() }}
@@ -569,16 +502,15 @@ export default function ProfesorScreen() {
                       onError={() => setPreviewError(true)}
                     />
                   ) : (
-                    <Text style={styles.previewErrorText}>⚠️ La URL no devuelve una imagen válida</Text>
+                    <Text style={styles.previewErrorText}>No se pudo cargar la imagen</Text>
                   )}
                 </View>
               )}
 
-              {/* Campo Formación */}
-              <Text style={styles.label}>Formación y Trayectoria Académica *</Text>
+              <Text style={styles.label}>Formación académica</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Escribe los títulos, posgrados, experiencia y asignaturas del docente..."
+                placeholder="Descripción del perfil académico..."
                 placeholderTextColor="#999"
                 value={formFormacion}
                 onChangeText={setFormFormacion}
@@ -587,7 +519,6 @@ export default function ProfesorScreen() {
                 textAlignVertical="top"
               />
 
-              {/* Botones de Acción */}
               <View style={styles.modalActionsRow}>
                 <TouchableOpacity
                   style={styles.cancelModalBtn}
@@ -608,7 +539,7 @@ export default function ProfesorScreen() {
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.saveModalBtnText}>
-                      {modalMode === 'create' ? 'Guardar Docente' : 'Actualizar'}
+                      {modalMode === 'create' ? 'Guardar' : 'Actualizar'}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -618,9 +549,6 @@ export default function ProfesorScreen() {
         </View>
       </Modal>
 
-      {/* ======================================================== */}
-      {/* MODAL CONFIRMACIÓN DE ELIMINACIÓN                       */}
-      {/* ======================================================== */}
       <Modal
         visible={deleteModalVisible}
         animationType="fade"
@@ -629,12 +557,9 @@ export default function ProfesorScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.deleteConfirmCard}>
-            <Text style={styles.deleteAlertIcon}>⚠️</Text>
-            <Text style={styles.deleteAlertTitle}>¿Eliminar Docente?</Text>
+            <Text style={styles.deleteAlertTitle}>Confirmar eliminación</Text>
             <Text style={styles.deleteAlertMessage}>
-              ¿Estás seguro de que deseas eliminar a{' '}
-              <Text style={{ fontWeight: 'bold' }}>{profesorToDelete?.nombre}</Text>? Esta acción no
-              se puede deshacer.
+              ¿Deseas eliminar a {profesorToDelete?.nombre}? Esta acción no se puede deshacer.
             </Text>
 
             <View style={styles.deleteActionsRow}>
@@ -656,7 +581,7 @@ export default function ProfesorScreen() {
                 {deleting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.deleteConfirmBtnText}>Sí, Eliminar</Text>
+                  <Text style={styles.deleteConfirmBtnText}>Eliminar</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -672,24 +597,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F6F8',
   },
-  successBanner: {
+  notificationBanner: {
     backgroundColor: '#2E7D32',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     marginHorizontal: 16,
     marginTop: 10,
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
     zIndex: 99,
   },
-  successBannerText: {
+  notificationText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
     textAlign: 'center',
   },
   scrollContent: {
@@ -714,19 +634,14 @@ const styles = StyleSheet.create({
   },
   createButton: {
     backgroundColor: '#FF6F00',
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    shadowColor: '#FF6F00',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
   },
   createButtonText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
   },
   searchRow: {
     flexDirection: 'row',
@@ -736,7 +651,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 46,
+    height: 44,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#DDDDDD',
@@ -751,12 +666,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   clearSearchText: {
-    fontSize: 16,
-    color: '#888888',
-    fontWeight: 'bold',
+    fontSize: 12,
+    color: '#666666',
   },
   searchButton: {
-    height: 46,
+    height: 44,
     paddingHorizontal: 16,
     backgroundColor: '#37474F',
     borderRadius: 8,
@@ -765,33 +679,8 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  chipsScroll: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingBottom: 10,
-  },
-  chip: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  chipSelected: {
-    backgroundColor: '#FF6F00',
-    borderColor: '#FF6F00',
-  },
-  chipText: {
-    fontSize: 12,
-    color: '#455A64',
     fontWeight: '600',
-  },
-  chipTextSelected: {
-    color: '#FFFFFF',
+    fontSize: 13,
   },
   loadingContainer: {
     marginTop: 30,
@@ -800,42 +689,48 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     color: '#666666',
-    fontSize: 14,
+    fontSize: 13,
   },
   errorBox: {
     marginTop: 16,
     backgroundColor: '#FFEBEE',
     borderRadius: 10,
-    padding: 14,
+    padding: 16,
     alignItems: 'center',
+  },
+  errorTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#B71C1C',
+    marginBottom: 6,
   },
   errorText: {
     color: '#C62828',
     textAlign: 'center',
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 13,
+    marginBottom: 12,
   },
   retryButton: {
     backgroundColor: '#C62828',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 16,
     borderRadius: 6,
   },
   retryButtonText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   card: {
     backgroundColor: '#FFFFFF',
     marginTop: 8,
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -845,59 +740,61 @@ const styles = StyleSheet.create({
   },
   badgeId: {
     backgroundColor: '#ECEFF1',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   idText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#455A64',
-    fontWeight: '700',
+    fontWeight: '600',
   },
   actionIconsRow: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
   },
-  editIconBtn: {
+  editBtn: {
     backgroundColor: '#FFF3E0',
     borderWidth: 1,
     borderColor: '#FFE0B2',
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 6,
   },
-  actionIconText: {
+  editBtnText: {
     fontSize: 12,
     color: '#E65100',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
-  deleteIconBtn: {
+  deleteBtn: {
     backgroundColor: '#FFEBEE',
     borderWidth: 1,
     borderColor: '#FFCDD2',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: 6,
   },
-  deleteIconText: {
-    fontSize: 14,
+  deleteBtnText: {
+    fontSize: 12,
+    color: '#C62828',
+    fontWeight: '600',
   },
   profesorName: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 'bold',
     color: '#222222',
     marginBottom: 12,
   },
   imageContainer: {
-    width: 170,
-    height: 170,
+    width: 160,
+    height: 160,
     alignSelf: 'center',
-    borderRadius: 14,
+    borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#FFCC80',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     marginBottom: 14,
     justifyContent: 'center',
     alignItems: 'center',
@@ -910,47 +807,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF8E1',
+    backgroundColor: '#F1F5F9',
     width: '100%',
   },
-  placeholderIcon: {
-    fontSize: 48,
-    marginBottom: 4,
-  },
   placeholderText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#E65100',
+    fontSize: 12,
+    color: '#64748B',
   },
   summaryContainer: {
-    backgroundColor: '#F9FBFD',
-    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E3ECF5',
+    borderColor: '#E2E8F0',
     marginBottom: 14,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  sectionDot: {
-    color: '#FF6F00',
-    fontSize: 10,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#555555',
+    color: '#475569',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   summaryText: {
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: '#333333',
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#334155',
   },
   footerRow: {
     flexDirection: 'row',
@@ -964,37 +846,34 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   navArrowBtn: {
-    width: 34,
-    height: 34,
-    backgroundColor: '#F1F3F5',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
   },
   navArrowBtnDisabled: {
     opacity: 0.35,
   },
   navArrowText: {
     fontSize: 12,
-    color: '#333333',
-    fontWeight: 'bold',
+    color: '#334155',
+    fontWeight: '600',
   },
   pageIndicator: {
-    fontSize: 12.5,
-    color: '#666666',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
   verMasBtn: {
     backgroundColor: '#2E7D32',
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    elevation: 2,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 6,
   },
   verMasBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 13,
+    fontWeight: '600',
+    fontSize: 12,
   },
   detailsScrollContent: {
     padding: 16,
@@ -1002,23 +881,18 @@ const styles = StyleSheet.create({
   },
   detailsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 18,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
   },
   avatarContainer: {
-    width: 150,
-    height: 150,
-    borderRadius: 14,
+    width: 140,
+    height: 140,
+    borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#FF6F00',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
     marginBottom: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1031,291 +905,268 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF8E1',
+    backgroundColor: '#F1F5F9',
     width: '100%',
   },
-  avatarIcon: {
-    fontSize: 48,
-  },
   detailsName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#222222',
+    color: '#1E293B',
     textAlign: 'center',
     marginBottom: 4,
   },
   detailBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 4,
     marginBottom: 14,
   },
   detailBadgeText: {
-    color: '#2E7D32',
-    fontSize: 12,
+    color: '#475569',
+    fontSize: 11,
     fontWeight: '600',
   },
   detailActionsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     marginBottom: 16,
   },
   detailEditBtn: {
     backgroundColor: '#FF6F00',
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   detailEditBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 13,
+    fontWeight: '600',
+    fontSize: 12,
   },
   detailDeleteBtn: {
-    backgroundColor: '#D32F2F',
-    paddingVertical: 8,
+    backgroundColor: '#DC2626',
+    paddingVertical: 7,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   detailDeleteBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 13,
+    fontWeight: '600',
+    fontSize: 12,
   },
   fullProfileBox: {
     width: '100%',
-    maxHeight: 280,
-    backgroundColor: '#F9FBFD',
-    borderRadius: 12,
+    maxHeight: 260,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E3ECF5',
-    padding: 14,
-    marginBottom: 18,
-  },
-  profileHeaderRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingBottom: 8,
-    marginBottom: 10,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 16,
   },
   profileSectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#FF6F00',
+    color: '#475569',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    marginBottom: 8,
   },
   innerScrollView: {
-    maxHeight: 200,
+    maxHeight: 180,
   },
   profileBody: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#222222',
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#334155',
   },
   regresarBtn: {
     alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#2E7D32',
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#94A3B8',
+    borderRadius: 6,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   regresarBtnText: {
-    color: '#2E7D32',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: 13,
   },
-  // Modal Formulario Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 460,
     maxHeight: '88%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    borderRadius: 12,
+    padding: 18,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    paddingBottom: 12,
-    marginBottom: 14,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 10,
+    marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#222222',
+    color: '#1E293B',
   },
   modalCloseBtn: {
-    padding: 6,
+    padding: 4,
   },
   modalCloseText: {
-    fontSize: 18,
-    color: '#888888',
-    fontWeight: 'bold',
+    fontSize: 12,
+    color: '#64748B',
   },
   formErrorBox: {
     backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 10,
   },
   formErrorText: {
     color: '#C62828',
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#444444',
-    marginBottom: 6,
+    color: '#475569',
+    marginBottom: 4,
     marginTop: 6,
   },
   input: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#222222',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#1E293B',
     marginBottom: 8,
   },
   textArea: {
-    minHeight: 90,
+    minHeight: 80,
   },
   previewContainer: {
     alignItems: 'center',
-    marginBottom: 10,
-    marginTop: 2,
+    marginBottom: 8,
   },
   previewLabel: {
     fontSize: 11,
-    color: '#666666',
+    color: '#64748B',
     marginBottom: 4,
   },
   previewImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: 70,
+    height: 70,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#CBD5E1',
   },
   previewErrorText: {
     fontSize: 11,
-    color: '#D32F2F',
+    color: '#DC2626',
   },
   modalActionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 16,
+    gap: 8,
+    marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    paddingTop: 14,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
   },
   cancelModalBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#ECEFF1',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+    backgroundColor: '#F1F5F9',
   },
   cancelModalBtnText: {
-    color: '#455A64',
+    color: '#475569',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   saveModalBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
     backgroundColor: '#FF6F00',
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 110,
+    minWidth: 90,
   },
   saveModalBtnDisabled: {
-    opacity: 0.65,
+    opacity: 0.6,
   },
   saveModalBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
   },
-  // Modal Confirmación Eliminar
   deleteConfirmCard: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 360,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 22,
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
   },
-  deleteAlertIcon: {
-    fontSize: 40,
-    marginBottom: 10,
-  },
   deleteAlertTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#222222',
+    color: '#1E293B',
     marginBottom: 8,
   },
   deleteAlertMessage: {
-    fontSize: 14,
-    color: '#555555',
+    fontSize: 13,
+    color: '#475569',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
+    lineHeight: 18,
+    marginBottom: 18,
   },
   deleteActionsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     width: '100%',
   },
   deleteCancelBtn: {
     flex: 1,
-    backgroundColor: '#ECEFF1',
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 9,
+    borderRadius: 6,
     alignItems: 'center',
   },
   deleteCancelBtnText: {
-    color: '#455A64',
+    color: '#475569',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   deleteConfirmBtn: {
     flex: 1,
-    backgroundColor: '#D32F2F',
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: '#DC2626',
+    paddingVertical: 9,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteConfirmBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
   },
 });

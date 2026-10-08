@@ -10,7 +10,7 @@ try {
   const pg = require('pg');
   Pool = pg.Pool;
 } catch (e) {
-  console.log('ℹ️ Modo memoria local activo en microservicio de actualización.');
+  console.error('❌ Error: Módulo "pg" no encontrado.');
 }
 
 const PORT = process.env.PORT || 4003;
@@ -24,7 +24,10 @@ const pool = (DATABASE_URL && Pool)
   : null;
 
 async function initDB() {
-  if (!pool) return;
+  if (!pool) {
+    console.error('DATABASE_URL no configurada.');
+    return;
+  }
   try {
     const client = await pool.connect();
     await client.query(`
@@ -36,9 +39,9 @@ async function initDB() {
       );
     `);
     client.release();
-    console.log('✅ Microservicio de ACTUALIZACIÓN conectado a PostgreSQL/Neon');
+    console.log('Servicio de actualizacion conectado a Neon Database');
   } catch (err) {
-    console.error('❌ Error DB Actualización:', err.message);
+    console.error('Error al inicializar tabla:', err.message);
   }
 }
 
@@ -106,10 +109,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/health' && req.method === 'GET') {
-    return responderJSON(res, 200, {
-      status: 'ok',
+    return responderJSON(res, pool ? 200 : 503, {
+      status: pool ? 'ok' : 'error',
       microservicio: 'Actualización de Docentes (UPDATE)',
-      database: pool ? 'Neon / PostgreSQL Conectado' : 'Memoria local'
+      database: pool ? 'Neon / PostgreSQL Conectado' : 'Sin conexión a base de datos'
+    });
+  }
+
+  // Verificación estricta de base de datos Neon: Sin datos de respaldo falsos
+  if (!pool) {
+    return responderJSON(res, 503, {
+      error: 'Error de conexión: La base de datos de Neon no está disponible o DATABASE_URL no fue configurada.'
     });
   }
 
@@ -132,26 +142,16 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      if (pool) {
-        const updateRes = await pool.query(
-          'UPDATE profesor SET nombre = $1, imagen = $2, formacion = $3 WHERE id = $4 RETURNING *;',
-          [nombre.trim(), imagen.trim(), formacion.trim(), id]
-        );
-        if (updateRes.rows.length === 0) {
-          return responderJSON(res, 404, { error: `Docente con ID ${id} no encontrado para actualizar.` });
-        }
-        return responderJSON(res, 200, updateRes.rows[0]);
-      } else {
-        return responderJSON(res, 200, {
-          id,
-          nombre: nombre.trim(),
-          imagen: imagen.trim(),
-          formacion: formacion.trim(),
-          modo: 'memoria'
-        });
+      const updateRes = await pool.query(
+        'UPDATE profesor SET nombre = $1, imagen = $2, formacion = $3 WHERE id = $4 RETURNING *;',
+        [nombre.trim(), imagen.trim(), formacion.trim(), id]
+      );
+      if (updateRes.rows.length === 0) {
+        return responderJSON(res, 404, { error: `Docente con ID ${id} no encontrado en Neon Database para actualizar.` });
       }
+      return responderJSON(res, 200, updateRes.rows[0]);
     } catch (err) {
-      return responderJSON(res, 500, { error: err.message });
+      return responderJSON(res, 500, { error: `Error al actualizar en Neon Database: ${err.message}` });
     }
   }
 
@@ -159,7 +159,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  console.log(`✏️ [Microservicio Actualizar Docente] Activo en http://localhost:${PORT}`);
-  console.log(`📖 Swagger UI en http://localhost:${PORT}/docs`);
+  console.log(`Servidor de actualizacion corriendo en http://localhost:${PORT}`);
+  console.log(`Swagger en http://localhost:${PORT}/docs`);
   await initDB();
 });

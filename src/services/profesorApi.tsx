@@ -18,10 +18,6 @@ export interface ProfesorInput {
   formacion: string;
 }
 
-/**
- * MICROSERVICIO 1: CONSULTA (READ)
- * Consulta la lista completa de docentes o filtra por nombre
- */
 export async function getProfesores(nombre?: string): Promise<Profesor[]> {
   const baseUrl = GET_DOCENTE_CONSULTAR_BASE_URL();
   const url =
@@ -38,15 +34,11 @@ export async function getProfesores(nombre?: string): Promise<Profesor[]> {
 
   if (!respuesta.ok) {
     const errorData = await respuesta.json().catch(() => null);
-    throw new Error(errorData?.error || `Error en microservicio de consulta (${respuesta.status})`);
+    throw new Error(errorData?.error || `Error al consultar profesores (${respuesta.status})`);
   }
   return respuesta.json();
 }
 
-/**
- * MICROSERVICIO 1: CONSULTA (READ)
- * Consulta un docente específico por ID
- */
 export async function getProfesorById(id: number | string): Promise<Profesor> {
   const baseUrl = GET_DOCENTE_CONSULTAR_BASE_URL();
   const respuesta = await fetch(`${baseUrl}/${id}`, {
@@ -63,10 +55,6 @@ export async function getProfesorById(id: number | string): Promise<Profesor> {
   return respuesta.json();
 }
 
-/**
- * MICROSERVICIO 2: CREACIÓN (CREATE)
- * Inserta (crea) un nuevo docente a través del microservicio de creación
- */
 export async function createProfesor(data: ProfesorInput): Promise<Profesor> {
   const baseUrl = GET_DOCENTE_CREAR_BASE_URL();
   const respuesta = await fetch(baseUrl, {
@@ -80,15 +68,11 @@ export async function createProfesor(data: ProfesorInput): Promise<Profesor> {
 
   if (!respuesta.ok) {
     const errorData = await respuesta.json().catch(() => null);
-    throw new Error(errorData?.error || `Error en microservicio de creación (${respuesta.status})`);
+    throw new Error(errorData?.error || `Error al crear profesor (${respuesta.status})`);
   }
   return respuesta.json();
 }
 
-/**
- * MICROSERVICIO 3: ACTUALIZACIÓN (UPDATE)
- * Actualiza los datos de un docente existente a través del microservicio de actualización
- */
 export async function updateProfesor(id: number | string, data: ProfesorInput): Promise<Profesor> {
   const baseUrl = GET_DOCENTE_ACTUALIZAR_BASE_URL();
   const respuesta = await fetch(`${baseUrl}/${id}`, {
@@ -102,15 +86,11 @@ export async function updateProfesor(id: number | string, data: ProfesorInput): 
 
   if (!respuesta.ok) {
     const errorData = await respuesta.json().catch(() => null);
-    throw new Error(errorData?.error || `Error en microservicio de actualización (${respuesta.status})`);
+    throw new Error(errorData?.error || `Error al actualizar profesor (${respuesta.status})`);
   }
   return respuesta.json();
 }
 
-/**
- * MICROSERVICIO 4: ELIMINACIÓN (DELETE)
- * Elimina un docente a través del microservicio de eliminación
- */
 export async function deleteProfesor(id: number | string): Promise<{ mensaje: string; eliminado?: Profesor }> {
   const baseUrl = GET_DOCENTE_ELIMINAR_BASE_URL();
   const respuesta = await fetch(`${baseUrl}/${id}`, {
@@ -122,7 +102,7 @@ export async function deleteProfesor(id: number | string): Promise<{ mensaje: st
 
   if (!respuesta.ok) {
     const errorData = await respuesta.json().catch(() => null);
-    throw new Error(errorData?.error || `Error en microservicio de eliminación (${respuesta.status})`);
+    throw new Error(errorData?.error || `Error al eliminar profesor (${respuesta.status})`);
   }
   return respuesta.json();
 }

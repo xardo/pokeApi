@@ -10,7 +10,7 @@ try {
   const pg = require('pg');
   Pool = pg.Pool;
 } catch (e) {
-  console.log('ℹ️ Modo memoria local activo en microservicio de eliminación.');
+  console.error('❌ Error: Módulo "pg" no encontrado.');
 }
 
 const PORT = process.env.PORT || 4004;
@@ -24,7 +24,10 @@ const pool = (DATABASE_URL && Pool)
   : null;
 
 async function initDB() {
-  if (!pool) return;
+  if (!pool) {
+    console.error('DATABASE_URL no configurada.');
+    return;
+  }
   try {
     const client = await pool.connect();
     await client.query(`
@@ -36,9 +39,9 @@ async function initDB() {
       );
     `);
     client.release();
-    console.log('✅ Microservicio de ELIMINACIÓN conectado a PostgreSQL/Neon');
+    console.log('Servicio de eliminacion conectado a Neon Database');
   } catch (err) {
-    console.error('❌ Error DB Eliminación:', err.message);
+    console.error('Error al inicializar tabla:', err.message);
   }
 }
 
@@ -88,10 +91,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/health' && req.method === 'GET') {
-    return responderJSON(res, 200, {
-      status: 'ok',
+    return responderJSON(res, pool ? 200 : 503, {
+      status: pool ? 'ok' : 'error',
       microservicio: 'Eliminación de Docentes (DELETE)',
-      database: pool ? 'Neon / PostgreSQL Conectado' : 'Memoria local'
+      database: pool ? 'Neon / PostgreSQL Conectado' : 'Sin conexión a base de datos'
+    });
+  }
+
+  // Verificación estricta de base de datos Neon: Sin datos de respaldo falsos
+  if (!pool) {
+    return responderJSON(res, 503, {
+      error: 'Error de conexión: La base de datos de Neon no está disponible o DATABASE_URL no fue configurada.'
     });
   }
 
@@ -105,23 +115,16 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      if (pool) {
-        const deleteRes = await pool.query('DELETE FROM profesor WHERE id = $1 RETURNING *;', [id]);
-        if (deleteRes.rows.length === 0) {
-          return responderJSON(res, 404, { error: `Docente con ID ${id} no encontrado para eliminar.` });
-        }
-        return responderJSON(res, 200, {
-          mensaje: `Docente con ID ${id} eliminado exitosamente.`,
-          eliminado: deleteRes.rows[0]
-        });
-      } else {
-        return responderJSON(res, 200, {
-          mensaje: `Docente con ID ${id} eliminado exitosamente (modo local).`,
-          id
-        });
+      const deleteRes = await pool.query('DELETE FROM profesor WHERE id = $1 RETURNING *;', [id]);
+      if (deleteRes.rows.length === 0) {
+        return responderJSON(res, 404, { error: `Docente con ID ${id} no encontrado en Neon Database para eliminar.` });
       }
+      return responderJSON(res, 200, {
+        mensaje: `Docente con ID ${id} eliminado exitosamente de Neon Database.`,
+        eliminado: deleteRes.rows[0]
+      });
     } catch (err) {
-      return responderJSON(res, 500, { error: err.message });
+      return responderJSON(res, 500, { error: `Error al eliminar en Neon Database: ${err.message}` });
     }
   }
 
@@ -129,7 +132,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  console.log(`🗑️ [Microservicio Eliminar Docente] Activo en http://localhost:${PORT}`);
-  console.log(`📖 Swagger UI en http://localhost:${PORT}/docs`);
+  console.log(`Servidor de eliminacion corriendo en http://localhost:${PORT}`);
+  console.log(`Swagger en http://localhost:${PORT}/docs`);
   await initDB();
 });
