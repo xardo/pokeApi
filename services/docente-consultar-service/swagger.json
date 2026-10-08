@@ -1,0 +1,99 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microservicio de Consulta de Docentes (READ) - Uninpahu",
+    "version": "1.0.0",
+    "description": "Microservicio independiente responsable exclusivamente de la CONSULTA (Lectura) de docentes en la base de datos PostgreSQL / Neon."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Servidor actual"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Consulta",
+      "description": "Operaciones de lectura y filtrado de docentes"
+    }
+  ],
+  "paths": {
+    "/api/profesores": {
+      "get": {
+        "tags": ["Consulta"],
+        "summary": "Listar todos los docentes o filtrar por nombre",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "query",
+            "required": false,
+            "description": "Filtro opcional por nombre",
+            "schema": { "type": "string", "example": "Mariana" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de docentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Profesor" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profesores/{id}": {
+      "get": {
+        "tags": ["Consulta"],
+        "summary": "Consultar un docente por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Docente encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Profesor" }
+              }
+            }
+          },
+          "404": {
+            "description": "Docente no encontrado"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Consulta"],
+        "summary": "Estado de salud del microservicio",
+        "responses": {
+          "200": { "description": "Servicio saludable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Profesor": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "nombre": { "type": "string", "example": "Dr. Carlos Mendoza" },
+          "imagen": { "type": "string", "example": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" },
+          "formacion": { "type": "string", "example": "Doctor en Ciencias de la Computación." }
+        }
+      }
+    }
+  }
+}

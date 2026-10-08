@@ -45,6 +45,11 @@
     "seed:pokemon": "node ./services/pokemon-service-node/seed.js",
     "seed:anime": "python ./services/anime-service-python/seed_firebase.py",
     "server:profesor": "node ./services/profesor-service-node/server.js",
+    "service:docente:consultar": "node ./services/docente-consultar-service/server.js",
+    "service:docente:crear": "node ./services/docente-crear-service/server.js",
+    "service:docente:actualizar": "node ./services/docente-actualizar-service/server.js",
+    "service:docente:eliminar": "node ./services/docente-eliminar-service/server.js",
+    "services:docentes:all": "powershell -ExecutionPolicy Bypass -Command \"Start-Process node ./services/docente-consultar-service/server.js; Start-Process node ./services/docente-crear-service/server.js; Start-Process node ./services/docente-actualizar-service/server.js; Start-Process node ./services/docente-eliminar-service/server.js; Write-Host 'Microservicios iniciados en puertos 4001, 4002, 4003 y 4004'\"",
     "zip": "powershell -ExecutionPolicy Bypass -File ./scripts/create-submission-zip.ps1"
   },
   "private": true

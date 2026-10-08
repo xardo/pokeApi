@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microservicio de Eliminación de Docentes (DELETE) - Uninpahu",
+    "version": "1.0.0",
+    "description": "Microservicio independiente responsable de ELIMINAR registros de docentes de la base de datos PostgreSQL / Neon."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Servidor actual"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Eliminación",
+      "description": "Eliminación de docentes"
+    }
+  ],
+  "paths": {
+    "/api/profesores/{id}": {
+      "delete": {
+        "tags": ["Eliminación"],
+        "summary": "Eliminar docente por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Docente eliminado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": { "type": "string", "example": "Docente con ID 1 eliminado exitosamente." }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Docente no encontrado" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Eliminación"],
+        "summary": "Estado de salud del microservicio",
+        "responses": {
+          "200": { "description": "Servicio saludable" }
+        }
+      }
+    }
+  }
+}

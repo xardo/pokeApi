@@ -1,35 +1,47 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "API de Docentes Uninpahu - Microservicio Agnóstico Node.js",
-    "version": "1.0.0",
-    "description": "Microservicio desarrollado en Node.js puro sin frameworks (sin Express) conectado a Neon Database (PostgreSQL en la nube). Soporta consultas mediante Path Params y Query Params (sin Body Params)."
+    "title": "API Microservicio de Docentes Uninpahu - CRUD",
+    "version": "1.1.0",
+    "description": "Microservicio REST independiente para la gestión y CRUD completo de profesores/docentes de Uninpahu. Desarrollado en Node.js agnóstico, compatible con PostgreSQL (Render / Neon) y documentado con Swagger/OpenAPI."
   },
   "servers": [
     {
       "url": "/",
-      "description": "Servidor actual"
+      "description": "Servidor actual (Local o Nube)"
     }
   ],
   "tags": [
     {
-      "name": "Profesores",
-      "description": "Endpoints para consultar los profesores de la base de datos"
+      "name": "Docentes",
+      "description": "Operaciones CRUD sobre la base de datos de docentes"
     },
     {
-      "name": "Estado del Servidor",
-      "description": "Salud y estado de la conexión a la base de datos"
+      "name": "Salud",
+      "description": "Monitoreo del estado del microservicio y base de datos"
     }
   ],
   "paths": {
     "/api/profesores": {
       "get": {
-        "tags": ["Profesores"],
-        "summary": "Listar todos los profesores",
-        "description": "Retorna la lista completa de todos los profesores guardados en la base de datos.",
+        "tags": ["Docentes"],
+        "summary": "Consultar todos los docentes",
+        "description": "Retorna la lista completa de docentes o filtrados por coincidencia en el nombre.",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "query",
+            "required": false,
+            "description": "Filtro opcional por nombre o fragmento del nombre del docente",
+            "schema": {
+              "type": "string",
+              "example": "Carlos"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Lista de profesores obtenida exitosamente",
+            "description": "Lista de docentes obtenida exitosamente",
             "content": {
               "application/json": {
                 "schema": {
@@ -42,7 +54,62 @@
             }
           },
           "500": {
-            "description": "Error del servidor o de base de datos"
+            "description": "Error interno del servidor o de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Docentes"],
+        "summary": "Insertar un nuevo docente (Crear)",
+        "description": "Crea y guarda un nuevo registro de docente en la base de datos.",
+        "requestBody": {
+          "required": true,
+          "description": "Datos del docente a insertar",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevoProfesorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Docente creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profesor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos faltantes o inválidos en la petición",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al insertar en la base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
           }
         }
       }
@@ -50,14 +117,14 @@
     "/api/profesores/{id}": {
       "get": {
         "tags": ["Docentes"],
-        "summary": "Obtener profesor por ID",
-        "description": "Obtiene los datos completos y formación de un profesor mediante su ID en la URL (Path Param).",
+        "summary": "Consultar un docente por ID",
+        "description": "Obtiene la información detallada de un docente específico mediante su identificador.",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "ID del docente (Path Param)",
+            "description": "ID numérico del docente",
             "schema": {
               "type": "integer",
               "example": 1
@@ -66,7 +133,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Profesor encontrado",
+            "description": "Docente encontrado exitosamente",
             "content": {
               "application/json": {
                 "schema": {
@@ -76,22 +143,168 @@
             }
           },
           "404": {
-            "description": "Profesor no encontrado"
+            "description": "Docente no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Error al consultar la base de datos"
+            "description": "Error al consultar la base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Docentes"],
+        "summary": "Actualizar un docente existente",
+        "description": "Actualiza los datos (nombre, imagen, formación) de un docente identificado por su ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del docente a modificar",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Campos actualizados del docente",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevoProfesorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Docente actualizado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profesor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos faltantes o inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Docente a actualizar no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al actualizar en la base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Docentes"],
+        "summary": "Eliminar un docente por ID",
+        "description": "Remueve de forma permanente un docente de la base de datos.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del docente a eliminar",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Docente eliminado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaEliminar"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Docente a eliminar no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al eliminar de la base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRespuesta"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/health": {
       "get": {
-        "tags": ["Estado del Servidor"],
+        "tags": ["Salud"],
         "summary": "Verificar salud del microservicio",
-        "description": "Indica el estado del servidor y la conexión a Neon Database.",
+        "description": "Comprueba el estado de disponibilidad del servidor y de la conexión a la base de datos.",
         "responses": {
           "200": {
-            "description": "Servidor funcionando correctamente"
+            "description": "Microservicio operando correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "servicio": { "type": "string", "example": "Docentes Uninpahu - CRUD Microservicio" },
+                    "database": { "type": "string", "example": "PostgreSQL conectado" },
+                    "timestamp": { "type": "string", "example": "2026-10-08T16:30:00.000Z" }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -108,7 +321,7 @@
           },
           "nombre": {
             "type": "string",
-            "example": "Ing. Carlos Mendoza"
+            "example": "Dr. Carlos Mendoza"
           },
           "imagen": {
             "type": "string",
@@ -116,7 +329,47 @@
           },
           "formacion": {
             "type": "string",
-            "example": "Ingeniero de Sistemas y Magíster en Ingeniería de Software. Docente líder en Uninpahu."
+            "example": "Doctor en Ciencias de la Computación e Inteligencia Artificial. Magíster en Ingeniería de Software. Más de 12 años de experiencia como docente investigador en Uninpahu."
+          }
+        },
+        "required": ["id", "nombre", "imagen", "formacion"]
+      },
+      "NuevoProfesorInput": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Dra. Mariana Restrepo"
+          },
+          "imagen": {
+            "type": "string",
+            "example": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500"
+          },
+          "formacion": {
+            "type": "string",
+            "example": "Doctora en Robótica y Sistemas Autónomos. Especialista en Desarrollo Móvil y Cloud Computing. Líder del semillero de desarrollo móvil en Uninpahu."
+          }
+        },
+        "required": ["nombre", "imagen", "formacion"]
+      },
+      "RespuestaEliminar": {
+        "type": "object",
+        "properties": {
+          "mensaje": {
+            "type": "string",
+            "example": "Profesor con ID 1 eliminado exitosamente."
+          },
+          "eliminado": {
+            "$ref": "#/components/schemas/Profesor"
+          }
+        }
+      },
+      "ErrorRespuesta": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Descripción del error ocurrido"
           }
         }
       }

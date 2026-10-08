@@ -1,0 +1,84 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microservicio de Creación de Docentes (CREATE) - Uninpahu",
+    "version": "1.0.0",
+    "description": "Microservicio independiente responsable de INSERTAR (Crear) nuevos docentes en la base de datos PostgreSQL / Neon."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Servidor actual"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Creación",
+      "description": "Inserción de docentes"
+    }
+  ],
+  "paths": {
+    "/api/profesores": {
+      "post": {
+        "tags": ["Creación"],
+        "summary": "Insertar un nuevo docente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevoProfesorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Docente creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profesor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos obligatorios faltantes"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Creación"],
+        "summary": "Estado de salud del microservicio",
+        "responses": {
+          "200": { "description": "Servicio saludable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Profesor": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 10 },
+          "nombre": { "type": "string", "example": "Dra. Mariana Restrepo" },
+          "imagen": { "type": "string", "example": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500" },
+          "formacion": { "type": "string", "example": "Doctora en Robótica y Sistemas Autónomos." }
+        }
+      },
+      "NuevoProfesorInput": {
+        "type": "object",
+        "properties": {
+          "nombre": { "type": "string", "example": "Dra. Mariana Restrepo" },
+          "imagen": { "type": "string", "example": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500" },
+          "formacion": { "type": "string", "example": "Doctora en Robótica y Sistemas Autónomos." }
+        },
+        "required": ["nombre", "imagen", "formacion"]
+      }
+    }
+  }
+}

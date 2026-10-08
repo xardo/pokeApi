@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microservicio de Actualización de Docentes (UPDATE) - Uninpahu",
+    "version": "1.0.0",
+    "description": "Microservicio independiente responsable de ACTUALIZAR (Modificar) los datos de docentes en la base de datos PostgreSQL / Neon."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Servidor actual"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Actualización",
+      "description": "Modificación de datos de docentes"
+    }
+  ],
+  "paths": {
+    "/api/profesores/{id}": {
+      "put": {
+        "tags": ["Actualización"],
+        "summary": "Actualizar docente por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevoProfesorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Docente actualizado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profesor"
+                }
+              }
+            }
+          },
+          "400": { "description": "Campos inválidos" },
+          "404": { "description": "Docente no encontrado" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Actualización"],
+        "summary": "Estado de salud del microservicio",
+        "responses": {
+          "200": { "description": "Servicio saludable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Profesor": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "nombre": { "type": "string", "example": "Dr. Carlos Mendoza" },
+          "imagen": { "type": "string", "example": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" },
+          "formacion": { "type": "string", "example": "Doctor en Ciencias de la Computación." }
+        }
+      },
+      "NuevoProfesorInput": {
+        "type": "object",
+        "properties": {
+          "nombre": { "type": "string", "example": "Dr. Carlos Mendoza Modificado" },
+          "imagen": { "type": "string", "example": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" },
+          "formacion": { "type": "string", "example": "Doctor en Ciencias de la Computación e IA." }
+        },
+        "required": ["nombre", "imagen", "formacion"]
+      }
+    }
+  }
+}
