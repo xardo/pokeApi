@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Microservicio de Creación de Docentes (CREATE) - Uninpahu",
+    "title": "Microservicio de Creación de Docentes (CREATE)",
     "version": "1.0.0",
     "description": "Microservicio independiente responsable de INSERTAR (Crear) nuevos docentes en la base de datos PostgreSQL / Neon."
   },

@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Microservicio de Eliminación de Docentes (DELETE) - Uninpahu",
+    "title": "Microservicio de Eliminación de Docentes (DELETE)",
     "version": "1.0.0",
     "description": "Microservicio independiente responsable de ELIMINAR registros de docentes de la base de datos PostgreSQL / Neon."
   },

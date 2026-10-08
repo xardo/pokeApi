@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Microservicio de Consulta de Docentes (READ) - Uninpahu",
+    "title": "Microservicio de Consulta de Docentes (READ)",
     "version": "1.0.0",
-    "description": "Microservicio independiente responsable exclusivamente de la CONSULTA (Lectura) de docentes en la base de datos PostgreSQL / Neon."
+    "description": "Microservicio independiente responsable de la CONSULTA (Lectura) de docentes en la base de datos PostgreSQL / Neon."
   },
   "servers": [
     {

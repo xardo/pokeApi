@@ -1,4 +1,4 @@
-# 🎓 Microservicio de Docentes Uninpahu (CRUD Completo + Swagger + Cloud)
+# Microservicio de Docentes (CRUD Completo + Swagger + Cloud)
 
 Microservicio REST desarrollado en **Node.js agnóstico** (utilizando el módulo nativo `http` sin dependencias de frameworks externos pesados), conectado a una base de datos relacional en la nube (**PostgreSQL en Render o Neon**) y documentado interactivamente con **Swagger UI / OpenAPI 3.0**.
 

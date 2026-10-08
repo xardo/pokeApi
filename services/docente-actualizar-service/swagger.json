@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Microservicio de Actualización de Docentes (UPDATE) - Uninpahu",
+    "title": "Microservicio de Actualización de Docentes (UPDATE)",
     "version": "1.0.0",
     "description": "Microservicio independiente responsable de ACTUALIZAR (Modificar) los datos de docentes en la base de datos PostgreSQL / Neon."
   },

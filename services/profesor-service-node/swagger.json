@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "API Microservicio de Docentes Uninpahu - CRUD",
+    "title": "API Microservicio de Docentes - CRUD",
     "version": "1.1.0",
-    "description": "Microservicio REST independiente para la gestión y CRUD completo de profesores/docentes de Uninpahu. Desarrollado en Node.js agnóstico, compatible con PostgreSQL (Render / Neon) y documentado con Swagger/OpenAPI."
+    "description": "Microservicio REST independiente para la gestión y CRUD completo de profesores/docentes. Desarrollado en Node.js agnóstico, compatible con PostgreSQL (Render / Neon) y documentado con Swagger/OpenAPI."
   },
   "servers": [
     {
@@ -298,7 +298,7 @@
                   "type": "object",
                   "properties": {
                     "status": { "type": "string", "example": "ok" },
-                    "servicio": { "type": "string", "example": "Docentes Uninpahu - CRUD Microservicio" },
+                    "servicio": { "type": "string", "example": "Docentes - CRUD Microservicio" },
                     "database": { "type": "string", "example": "PostgreSQL conectado" },
                     "timestamp": { "type": "string", "example": "2026-10-08T16:30:00.000Z" }
                   }
@@ -329,7 +329,7 @@
           },
           "formacion": {
             "type": "string",
-            "example": "Doctor en Ciencias de la Computación e Inteligencia Artificial. Magíster en Ingeniería de Software. Más de 12 años de experiencia como docente investigador en Uninpahu."
+            "example": "Doctor en Ciencias de la Computación e Inteligencia Artificial. Magíster en Ingeniería de Software. Más de 12 años de experiencia como docente investigador."
           }
         },
         "required": ["id", "nombre", "imagen", "formacion"]
@@ -347,7 +347,7 @@
           },
           "formacion": {
             "type": "string",
-            "example": "Doctora en Robótica y Sistemas Autónomos. Especialista en Desarrollo Móvil y Cloud Computing. Líder del semillero de desarrollo móvil en Uninpahu."
+            "example": "Doctora en Robótica y Sistemas Autónomos. Especialista en Desarrollo Móvil y Cloud Computing."
           }
         },
         "required": ["nombre", "imagen", "formacion"]

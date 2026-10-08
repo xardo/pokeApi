@@ -91,7 +91,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/' && method === 'GET') {
     return responderJSON(res, 200, {
-      mensaje: 'API de Microservicio de Profesores / Docentes Uninpahu (Neon DB)',
+      mensaje: 'API de Microservicio de Profesores / Docentes (Neon DB)',
       version: '1.2.0',
       documentacion_swagger: '/docs',
       especificacion_openapi: '/swagger.json',
@@ -123,7 +123,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/health' && method === 'GET') {
     return responderJSON(res, pool ? 200 : 503, {
       status: pool ? 'ok' : 'error',
-      servicio: 'Docentes Uninpahu - CRUD Microservicio',
+      servicio: 'Docentes - CRUD Microservicio',
       database: pool ? 'Neon PostgreSQL Conectado' : 'Sin conexión a base de datos',
       timestamp: new Date().toISOString()
     });
