@@ -17,6 +17,8 @@ import {
   createProfesor,
   deleteProfesor,
   getProfesores,
+  getSyncStats,
+  networkSync,
   Profesor,
   updateProfesor,
 } from '@/services/profesorApi';
@@ -31,6 +33,11 @@ export default function ProfesorScreen() {
   const [imageError, setImageError] = useState(false);
 
   const [notification, setNotification] = useState<string | null>(null);
+
+  // Estados de conectividad y SQLite offline
+  const [isOnline, setIsOnline] = useState(networkSync.isEffectiveOnline());
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -55,7 +62,16 @@ export default function ProfesorScreen() {
     setNotification(msg);
     setTimeout(() => {
       setNotification(null);
-    }, 3000);
+    }, 3500);
+  };
+
+  const refreshPendingStats = async () => {
+    try {
+      const stats = await getSyncStats();
+      setPendingCount(stats.pendingCount);
+    } catch {
+      // Ignorar
+    }
   };
 
   const loadData = async (query?: string, keepSelectionId?: number) => {
@@ -64,6 +80,7 @@ export default function ProfesorScreen() {
     setImageError(false);
     try {
       const data = await getProfesores(query);
+      await refreshPendingStats();
       if (data && data.length > 0) {
         setProfesores(data);
         if (keepSelectionId) {
@@ -82,15 +99,63 @@ export default function ProfesorScreen() {
       }
     } catch (err: any) {
       setProfesores([]);
-      setError(err?.message || 'Error al conectar con la base de datos.');
+      setError(err?.message || 'Error al consultar docentes.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    const initTimer = setTimeout(() => {
+      loadData();
+    }, 0);
+
+    // Listener de conectividad en tiempo real
+    const unsubNetwork = networkSync.onNetworkChange((online) => {
+      setIsOnline(online);
+      refreshPendingStats();
+    });
+
+    // Listener de sincronización completada
+    const unsubSync = networkSync.onSyncComplete((syncedCount, syncErr) => {
+      setIsSyncing(false);
+      refreshPendingStats();
+      if (syncedCount > 0) {
+        showNotification(`${syncedCount} docente(s) sincronizado(s) con la base de datos.`);
+        loadData();
+      } else if (syncErr) {
+        console.warn('Error durante la sincronización:', syncErr);
+      }
+    });
+
+    return () => {
+      clearTimeout(initTimer);
+      unsubNetwork();
+      unsubSync();
+    };
   }, []);
+
+  const handleManualSync = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        'Modo sin conexion',
+        'El dispositivo se encuentra en modo offline. Vuelve a activar la conexion para sincronizar con la nube.'
+      );
+      return;
+    }
+    setIsSyncing(true);
+    const res = await networkSync.syncPendingRecords();
+    setIsSyncing(false);
+    await refreshPendingStats();
+    if (res.syncedCount > 0) {
+      showNotification(`${res.syncedCount} docente(s) sincronizado(s) con el servidor.`);
+      await loadData(search.trim());
+    } else if (res.success) {
+      showNotification('Base de datos al dia. No hay cambios pendientes.');
+    } else {
+      showNotification('Error al sincronizar: ' + (res.error || 'reintente'));
+    }
+  };
 
   const handleSearch = () => {
     Keyboard.dismiss();
@@ -150,7 +215,13 @@ export default function ProfesorScreen() {
           formacion: formFormacion.trim(),
         });
         setModalVisible(false);
-        showNotification('Docente registrado correctamente.');
+        await refreshPendingStats();
+        // Mensaje transparente: el usuario sabe que se guardó correctamente sin importar dónde esté
+        if (nuevo._sync_status === 'pending_create') {
+          showNotification('Docente registrado localmente en SQLite.');
+        } else {
+          showNotification('Docente registrado correctamente.');
+        }
         await loadData(search.trim(), nuevo.id);
       } else if (modalMode === 'edit' && selectedProfesorId !== null) {
         const actualizado = await updateProfesor(selectedProfesorId, {
@@ -159,6 +230,7 @@ export default function ProfesorScreen() {
           formacion: formFormacion.trim(),
         });
         setModalVisible(false);
+        await refreshPendingStats();
         showNotification('Docente actualizado correctamente.');
         await loadData(search.trim(), actualizado.id);
       }
@@ -182,6 +254,7 @@ export default function ProfesorScreen() {
       setDeleteModalVisible(false);
       showNotification('Docente eliminado correctamente.');
       setProfesorToDelete(null);
+      await refreshPendingStats();
       await loadData(search.trim());
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'No se pudo eliminar el docente.');
@@ -197,6 +270,37 @@ export default function ProfesorScreen() {
           <Text style={styles.notificationText}>{notification}</Text>
         </View>
       )}
+
+      {/* Barra de estado de conexión y simulación SQLite / Neon */}
+      <View style={[styles.networkBanner, !isOnline && styles.networkBannerOffline]}>
+        <View style={styles.networkStatusLeft}>
+          <View style={[styles.statusDot, isOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+          <View style={styles.networkTextGroup}>
+            <Text style={styles.networkStatusTitle}>
+              {isOnline ? 'En linea (Nube)' : 'Sin conexion (SQLite Local)'}
+            </Text>
+            <Text style={styles.networkStatusSubtitle}>
+              {isOnline
+                ? 'Inserciones se guardan en el servidor'
+                : 'Inserciones se guardan localmente en SQLite'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.networkActionsRight}>
+          {pendingCount > 0 && (
+            <TouchableOpacity
+              style={styles.pendingBadge}
+              onPress={isOnline ? handleManualSync : undefined}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pendingBadgeText}>
+                {isSyncing ? 'Sincronizando...' : `${pendingCount} pendiente${pendingCount > 1 ? 's' : ''}`}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
       {viewMode === 'summary' && (
         <ScrollView
@@ -272,8 +376,15 @@ export default function ProfesorScreen() {
           {currentProfesor && !loading && (
             <View style={styles.card}>
               <View style={styles.cardTopRow}>
-                <View style={styles.badgeId}>
-                  <Text style={styles.idText}>ID: {currentProfesor.id}</Text>
+                <View style={styles.badgeRowWrapper}>
+                  <View style={styles.badgeId}>
+                    <Text style={styles.idText}>ID: {currentProfesor.id}</Text>
+                  </View>
+                  {currentProfesor._sync_status === 'pending_create' && (
+                    <View style={styles.badgePendingSync}>
+                      <Text style={styles.badgePendingSyncText}>Local (SQLite)</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.actionIconsRow}>
@@ -395,8 +506,15 @@ export default function ProfesorScreen() {
             </View>
 
             <Text style={styles.detailsName}>{currentProfesor.nombre}</Text>
-            <View style={styles.detailBadge}>
-              <Text style={styles.detailBadgeText}>Docente #{currentProfesor.id}</Text>
+            <View style={styles.detailBadgeRow}>
+              <View style={styles.detailBadge}>
+                <Text style={styles.detailBadgeText}>Docente #{currentProfesor.id}</Text>
+              </View>
+              {currentProfesor._sync_status === 'pending_create' && (
+                <View style={styles.badgePendingSync}>
+                  <Text style={styles.badgePendingSyncText}>Pendiente de sincronizar</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.detailActionsRow}>
@@ -1168,5 +1286,110 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 13,
+  },
+  networkBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#A7F3D0',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  networkBannerOffline: {
+    backgroundColor: '#FEF2F2',
+    borderBottomColor: '#FECACA',
+  },
+  networkStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    minWidth: 160,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  statusDotOnline: {
+    backgroundColor: '#10B981',
+  },
+  statusDotOffline: {
+    backgroundColor: '#EF4444',
+  },
+  networkTextGroup: {
+    flex: 1,
+  },
+  networkStatusTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  networkStatusSubtitle: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  networkActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pendingBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pendingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  simulateBtn: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  simulateBtnActive: {
+    backgroundColor: '#2563EB',
+  },
+  simulateBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  simulateBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  badgeRowWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  badgePendingSync: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  badgePendingSyncText: {
+    color: '#B45309',
+    fontSize: 10.5,
+    fontWeight: '700',
   },
 });
