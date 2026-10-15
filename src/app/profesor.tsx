@@ -18,6 +18,7 @@ import {
   deleteProfesor,
   getProfesores,
   getSyncStats,
+  markProfesorSeenAsRead,
   networkSync,
   Profesor,
   updateProfesor,
@@ -38,6 +39,11 @@ export default function ProfesorScreen() {
   const [isOnline, setIsOnline] = useState(networkSync.isEffectiveOnline());
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Intervalo de monitoreo parametrizable por el usuario (2s, 10s, 30s)
+  const [pollInterval, setPollIntervalState] = useState<number>(networkSync.getPollInterval());
+  // Conteo de nuevos docentes detectados en la nube
+  const [cloudNewAlert, setCloudNewAlert] = useState<string | null>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -128,12 +134,31 @@ export default function ProfesorScreen() {
       }
     });
 
+    // Listener de cambios y nuevas inserciones en la nube
+    const unsubCloud = networkSync.onCloudChanges((newCount, newProfesores) => {
+      if (newCount > 0) {
+        const nombres = newProfesores.map((p) => p.nombre).slice(0, 2).join(', ');
+        const extra = newCount > 2 ? ` y ${newCount - 2} más` : '';
+        const msg = `☁️ Se han insertado ${newCount} nuevo(s) docente(s) en la nube: ${nombres}${extra}`;
+        setCloudNewAlert(msg);
+        showNotification(msg);
+        loadData();
+      }
+    });
+
     return () => {
       clearTimeout(initTimer);
       unsubNetwork();
       unsubSync();
+      unsubCloud();
     };
   }, []);
+
+  const handleChangePollInterval = (seconds: number) => {
+    setPollIntervalState(seconds);
+    networkSync.setPollInterval(seconds);
+    showNotification(`Monitoreo de nube configurado cada ${seconds} segundos.`);
+  };
 
   const handleManualSync = async () => {
     if (!isOnline) {
@@ -288,6 +313,24 @@ export default function ProfesorScreen() {
         </View>
 
         <View style={styles.networkActionsRight}>
+          <TouchableOpacity
+            style={[styles.simulateBtn, !isOnline && styles.simulateBtnActive]}
+            onPress={() => {
+              const nextSim = networkSync.toggleSimulatedOffline();
+              setIsOnline(networkSync.isEffectiveOnline());
+              showNotification(
+                nextSim
+                  ? '🔌 Simulación Sin Conexión ACTIVADA (CRUD sobre SQLite).'
+                  : '🌐 Simulación Sin Conexión DESACTIVADA (En línea con la Nube).'
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.simulateBtnText, !isOnline && styles.simulateBtnTextActive]}>
+              {isOnline ? 'Simular Offline' : 'Reconectar'}
+            </Text>
+          </TouchableOpacity>
+
           {pendingCount > 0 && (
             <TouchableOpacity
               style={styles.pendingBadge}
@@ -301,6 +344,46 @@ export default function ProfesorScreen() {
           )}
         </View>
       </View>
+
+      {/* Selector de intervalo de monitoreo parametrizable por el usuario */}
+      <View style={styles.pollControlBar}>
+        <Text style={styles.pollControlLabel}>Monitoreo en la nube:</Text>
+        <View style={styles.pollButtonsGroup}>
+          {[2, 10, 30].map((sec) => (
+            <TouchableOpacity
+              key={sec}
+              style={[
+                styles.pollOptionBtn,
+                pollInterval === sec && styles.pollOptionBtnActive,
+              ]}
+              onPress={() => handleChangePollInterval(sec)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pollOptionBtnText,
+                  pollInterval === sec && styles.pollOptionBtnTextActive,
+                ]}
+              >
+                {sec}s
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Alerta de nuevas inserciones en la nube */}
+      {cloudNewAlert && (
+        <View style={styles.cloudAlertContainer}>
+          <Text style={styles.cloudAlertText}>{cloudNewAlert}</Text>
+          <TouchableOpacity
+            style={styles.cloudAlertCloseBtn}
+            onPress={() => setCloudNewAlert(null)}
+          >
+            <Text style={styles.cloudAlertCloseText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {viewMode === 'summary' && (
         <ScrollView
@@ -383,6 +466,11 @@ export default function ProfesorScreen() {
                   {currentProfesor._sync_status === 'pending_create' && (
                     <View style={styles.badgePendingSync}>
                       <Text style={styles.badgePendingSyncText}>Local (SQLite)</Text>
+                    </View>
+                  )}
+                  {currentProfesor._is_cloud_new && (
+                    <View style={styles.badgeCloudNew}>
+                      <Text style={styles.badgeCloudNewText}>✨ Nuevo (Nube)</Text>
                     </View>
                   )}
                 </View>
@@ -514,6 +602,23 @@ export default function ProfesorScreen() {
                 <View style={styles.badgePendingSync}>
                   <Text style={styles.badgePendingSyncText}>Pendiente de sincronizar</Text>
                 </View>
+              )}
+              {currentProfesor._is_cloud_new && (
+                <TouchableOpacity
+                  style={styles.badgeCloudNew}
+                  onPress={async () => {
+                    await markProfesorSeenAsRead(currentProfesor.id);
+                    setProfesores((prev) =>
+                      prev.map((p) =>
+                        p.id === currentProfesor.id ? { ...p, _is_cloud_new: false } : p
+                      )
+                    );
+                    showNotification('Docente marcado como revisado.');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.badgeCloudNewText}>✨ Nuevo (Nube) - Toca para marcar visto</Text>
+                </TouchableOpacity>
               )}
             </View>
 
@@ -1389,6 +1494,87 @@ const styles = StyleSheet.create({
   },
   badgePendingSyncText: {
     color: '#B45309',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  pollControlBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  pollControlLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  pollButtonsGroup: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  pollOptionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  pollOptionBtnActive: {
+    backgroundColor: '#2563EB',
+    borderColor: '#1D4ED8',
+  },
+  pollOptionBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  pollOptionBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  cloudAlertContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 6,
+  },
+  cloudAlertText: {
+    fontSize: 12,
+    color: '#1E40AF',
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 8,
+  },
+  cloudAlertCloseBtn: {
+    padding: 4,
+  },
+  cloudAlertCloseText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: 'bold',
+  },
+  badgeCloudNew: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  badgeCloudNewText: {
+    color: '#15803D',
     fontSize: 10.5,
     fontWeight: '700',
   },

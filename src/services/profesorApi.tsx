@@ -12,6 +12,7 @@ import {
   getPendingSyncRecords,
   getSyncStats,
   insertLocalProfesor,
+  markProfesorSeenAsRead,
   updateLocalProfesor,
 } from './profesorDatabase';
 import { networkSync } from './networkSyncService';
@@ -23,6 +24,7 @@ export interface Profesor {
   formacion: string;
   _sync_status?: 'synced' | 'pending_create' | 'pending_update' | 'pending_delete';
   _local_id?: number;
+  _is_cloud_new?: boolean;
 }
 
 export interface ProfesorInput {
@@ -224,4 +226,5 @@ export async function deleteProfesor(id: number | string): Promise<{ mensaje: st
 export {
   networkSync,
   getSyncStats,
+  markProfesorSeenAsRead,
 };

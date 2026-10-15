@@ -17,6 +17,7 @@ import { Profesor } from './profesorApi';
 
 type NetworkListener = (isOnline: boolean) => void;
 type SyncListener = (syncedCount: number, error?: string) => void;
+type CloudChangesListener = (newCount: number, newProfesores: Profesor[]) => void;
 
 class NetworkSyncService {
   private isSimulatedOffline: boolean = false;
@@ -24,7 +25,10 @@ class NetworkSyncService {
   private isSyncing: boolean = false;
   private networkListeners: Set<NetworkListener> = new Set();
   private syncListeners: Set<SyncListener> = new Set();
+  private cloudChangesListeners: Set<CloudChangesListener> = new Set();
   private checkInterval: any = null;
+  private pollIntervalSeconds: number = 10; // Parametrizable: 2s, 10s, 30s
+  private knownServerCount: number = -1;
 
   constructor() {
     this.initNetworkMonitoring();
@@ -39,7 +43,7 @@ class NetworkSyncService {
     }
 
     try {
-      Network.addNetworkStateListener((state) => {
+      Network.addNetworkStateListener((state: Network.NetworkState) => {
         const connected = !!(state.isConnected && (state.isInternetReachable ?? true));
         const changed = connected !== this.isRealConnected;
         this.isRealConnected = connected;
@@ -47,6 +51,7 @@ class NetworkSyncService {
           this.notifyNetworkChange();
           if (this.isEffectiveOnline()) {
             this.syncPendingRecords();
+            this.checkCloudChanges();
           }
         }
       });
@@ -60,6 +65,7 @@ class NetworkSyncService {
         this.notifyNetworkChange();
         if (this.isEffectiveOnline()) {
           this.syncPendingRecords();
+          this.checkCloudChanges();
         }
       });
 
@@ -69,15 +75,37 @@ class NetworkSyncService {
       });
     }
 
-    // Monitoreo periódico en segundo plano
+    this.startPollingTimer();
+  }
+
+  /**
+   * Configura el intervalo de monitoreo en segundos (ej. 2, 10, 30).
+   */
+  public setPollInterval(seconds: number): void {
+    this.pollIntervalSeconds = seconds;
+    this.startPollingTimer();
+  }
+
+  public getPollInterval(): number {
+    return this.pollIntervalSeconds;
+  }
+
+  private startPollingTimer(): void {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+    }
+    const ms = Math.max(1000, this.pollIntervalSeconds * 1000);
     this.checkInterval = setInterval(async () => {
       if (this.isEffectiveOnline() && !this.isSyncing) {
+        // 1. Sincronizar registros locales pendientes si los hay
         const stats = await getSyncStats();
         if (stats.pendingCount > 0) {
-          this.syncPendingRecords();
+          await this.syncPendingRecords();
         }
+        // 2. Monitorear cambios en la base de datos en la nube (Neon DB)
+        await this.checkCloudChanges();
       }
-    }, 15000);
+    }, ms);
   }
 
   /**
@@ -143,6 +171,11 @@ class NetworkSyncService {
     return () => this.syncListeners.delete(listener);
   }
 
+  public onCloudChanges(listener: CloudChangesListener): () => void {
+    this.cloudChangesListeners.add(listener);
+    return () => this.cloudChangesListeners.delete(listener);
+  }
+
   private notifyNetworkChange(): void {
     const online = this.isEffectiveOnline();
     this.networkListeners.forEach((listener) => {
@@ -162,6 +195,67 @@ class NetworkSyncService {
         console.warn('Error en listener de sincronización:', e);
       }
     });
+  }
+
+  private notifyCloudChanges(newCount: number, newProfesores: Profesor[]): void {
+    this.cloudChangesListeners.forEach((listener) => {
+      try {
+        listener(newCount, newProfesores);
+      } catch (e) {
+        console.warn('Error en listener de cambios en la nube:', e);
+      }
+    });
+  }
+
+  /**
+   * Consulta el microservicio en la nube para verificar si hay modificaciones o nuevas inserciones,
+   * y las sincroniza inmediatamente en SQLite local.
+   */
+  public async checkCloudChanges(): Promise<{ hasChanges: boolean; newCount: number }> {
+    if (!this.isEffectiveOnline() || this.isSyncing) {
+      return { hasChanges: false, newCount: 0 };
+    }
+
+    try {
+      const consultarUrl = GET_DOCENTE_CONSULTAR_BASE_URL();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch(consultarUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const cloudProfesores: Profesor[] = await res.json();
+        
+        // Cachear y sincronizar en SQLite local
+        const cacheResult = await cacheServerProfesores(cloudProfesores);
+
+        // Si es la primera consulta que realiza el servicio, inicializamos el contador
+        if (this.knownServerCount === -1) {
+          this.knownServerCount = cloudProfesores.length;
+          return { hasChanges: false, newCount: 0 };
+        }
+
+        if (cacheResult.newCount > 0) {
+          console.log(`☁️ Detectadas ${cacheResult.newCount} nuevas inserciones en la base de datos en la nube`);
+          const newItems = cloudProfesores.filter((p) => cacheResult.newIds.includes(p.id));
+          this.knownServerCount = cloudProfesores.length;
+          this.notifyCloudChanges(cacheResult.newCount, newItems);
+          return { hasChanges: true, newCount: cacheResult.newCount };
+        }
+
+        this.knownServerCount = cloudProfesores.length;
+      }
+    } catch (err: any) {
+      // Microservicio ocupado o fallo temporal de red
+      console.warn('Verificación periódica en la nube:', err?.message);
+    }
+
+    return { hasChanges: false, newCount: 0 };
   }
 
   /**
@@ -195,6 +289,36 @@ class NetworkSyncService {
 
         try {
           if (record.sync_status === 'pending_create') {
+            // Situación hipotética de concurrencia:
+            // Si el mismo registro fue insertado directamente en la nube mientras estábamos offline,
+            // verificamos si ya existe exactamente el mismo docente en la nube para no duplicar.
+            let existingInCloud: Profesor | undefined;
+            try {
+              const consultarUrl = GET_DOCENTE_CONSULTAR_BASE_URL();
+              const checkRes = await fetch(consultarUrl, {
+                headers: { Accept: 'application/json' },
+              });
+              if (checkRes.ok) {
+                const cloudList: Profesor[] = await checkRes.json();
+                existingInCloud = cloudList.find(
+                  (c) =>
+                    c.nombre.trim().toLowerCase() === record.nombre.trim().toLowerCase() &&
+                    c.formacion.trim().toLowerCase() === record.formacion.trim().toLowerCase()
+                );
+              }
+            } catch {
+              // Si falla la consulta previa, procedemos con la subida normal
+            }
+
+            if (existingInCloud) {
+              // Ya existe en la nube: resolución inteligente del conflicto
+              // No insertamos un duplicado; vinculamos el registro local al ID ya existente en Neon
+              console.log(`ℹ️ Conflicto resuelto: El docente "${record.nombre}" ya existía en Neon (ID: ${existingInCloud.id}). Enlazando...`);
+              await markRecordSynced(record.id, existingInCloud.id);
+              syncedCount++;
+              continue;
+            }
+
             // Subir nuevo profesor al microservicio de creación (Neon DB)
             const createUrl = GET_DOCENTE_CREAR_BASE_URL();
             const res = await fetch(createUrl, {

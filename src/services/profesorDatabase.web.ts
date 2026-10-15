@@ -10,6 +10,7 @@ export interface LocalProfesorRecord {
   formacion: string;
   sync_status: SyncStatus;
   updated_at: number;
+  is_cloud_new?: number;
 }
 
 const fallbackStorageKey = 'poke_api_profesores_sqlite_fallback';
@@ -59,6 +60,7 @@ export async function getLocalProfesores(filtroNombre?: string): Promise<Profeso
     formacion: r.formacion,
     _sync_status: r.sync_status,
     _local_id: r.id,
+    _is_cloud_new: r.is_cloud_new === 1,
   }));
 }
 
@@ -193,7 +195,7 @@ export async function removeLocalRecord(localId: number): Promise<void> {
   saveFallbackRecords(records);
 }
 
-export async function cacheServerProfesores(serverList: Profesor[]): Promise<void> {
+export async function cacheServerProfesores(serverList: Profesor[]): Promise<{ newCount: number; newIds: number[] }> {
   const now = Date.now();
   const pendingRecords = await getPendingSyncRecords();
   const pendingServerIds = new Set(
@@ -207,6 +209,9 @@ export async function cacheServerProfesores(serverList: Profesor[]): Promise<voi
       (r) => r.sync_status !== 'synced' || (r.server_id !== null && serverIdsSet.has(r.server_id))
     );
   }
+
+  let newCount = 0;
+  const newIds: number[] = [];
 
   for (const item of serverList) {
     if (pendingServerIds.has(item.id)) continue;
@@ -222,6 +227,8 @@ export async function cacheServerProfesores(serverList: Profesor[]): Promise<voi
         updated_at: now,
       };
     } else {
+      newCount++;
+      newIds.push(item.id);
       const newId = records.length > 0 ? Math.max(...records.map((r) => r.id)) + 1 : 1;
       records.push({
         id: newId,
@@ -231,10 +238,22 @@ export async function cacheServerProfesores(serverList: Profesor[]): Promise<voi
         formacion: item.formacion,
         sync_status: 'synced',
         updated_at: now,
+        is_cloud_new: 1,
       });
     }
   }
   saveFallbackRecords(records);
+  return { newCount, newIds };
+}
+
+export async function markProfesorSeenAsRead(idOrServerId: number | string): Promise<void> {
+  const numId = Number(idOrServerId);
+  const records = loadFallbackRecords();
+  const item = records.find((r) => r.server_id === numId || r.id === numId);
+  if (item) {
+    item.is_cloud_new = 0;
+    saveFallbackRecords(records);
+  }
 }
 
 export async function getSyncStats(): Promise<{ pendingCount: number; totalLocal: number }> {

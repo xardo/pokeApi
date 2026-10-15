@@ -11,6 +11,7 @@ export interface LocalProfesorRecord {
   formacion: string;
   sync_status: SyncStatus;
   updated_at: number;
+  is_cloud_new?: number; // 1 si fue insertado desde la nube recientemente
 }
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
@@ -28,9 +29,18 @@ export async function initDatabase(): Promise<void> {
       imagen TEXT NOT NULL,
       formacion TEXT NOT NULL,
       sync_status TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      is_cloud_new INTEGER DEFAULT 0
     );
   `);
+
+  // Migración segura si la tabla ya existía sin la columna is_cloud_new
+  try {
+    await db.execAsync(`ALTER TABLE profesores_locales ADD COLUMN is_cloud_new INTEGER DEFAULT 0;`);
+  } catch {
+    // Ya existe la columna
+  }
+
   dbInstance = db;
   console.log('✅ Base de datos SQLite (expo-sqlite nativo) inicializada exitosamente.');
 }
@@ -39,7 +49,7 @@ export async function getLocalProfesores(filtroNombre?: string): Promise<Profeso
   await initDatabase();
 
   let query = `
-    SELECT id, server_id, nombre, imagen, formacion, sync_status 
+    SELECT id, server_id, nombre, imagen, formacion, sync_status, is_cloud_new 
     FROM profesores_locales 
     WHERE sync_status != 'pending_delete'
   `;
@@ -53,13 +63,14 @@ export async function getLocalProfesores(filtroNombre?: string): Promise<Profeso
   query += ` ORDER BY id ASC`;
 
   const rows = await dbInstance!.getAllAsync<LocalProfesorRecord>(query, params);
-  return rows.map((r) => ({
+  return rows.map((r: LocalProfesorRecord) => ({
     id: r.server_id ?? r.id,
     nombre: r.nombre,
     imagen: r.imagen,
     formacion: r.formacion,
     _sync_status: r.sync_status,
     _local_id: r.id,
+    _is_cloud_new: r.is_cloud_new === 1,
   }));
 }
 
@@ -197,7 +208,7 @@ export async function removeLocalRecord(localId: number): Promise<void> {
   await dbInstance!.runAsync(`DELETE FROM profesores_locales WHERE id = ?`, [localId]);
 }
 
-export async function cacheServerProfesores(serverList: Profesor[]): Promise<void> {
+export async function cacheServerProfesores(serverList: Profesor[]): Promise<{ newCount: number; newIds: number[] }> {
   await initDatabase();
   const now = Date.now();
 
@@ -215,11 +226,14 @@ export async function cacheServerProfesores(serverList: Profesor[]): Promise<voi
     );
   }
 
+  let newCount = 0;
+  const newIds: number[] = [];
+
   for (const item of serverList) {
     if (pendingServerIds.has(item.id)) continue;
 
     const existing = await dbInstance!.getFirstAsync<LocalProfesorRecord>(
-      `SELECT id FROM profesores_locales WHERE server_id = ?`,
+      `SELECT id, is_cloud_new FROM profesores_locales WHERE server_id = ?`,
       [item.id]
     );
 
@@ -231,13 +245,27 @@ export async function cacheServerProfesores(serverList: Profesor[]): Promise<voi
         [item.nombre, item.imagen, item.formacion, now, existing.id]
       );
     } else {
+      // Es una nueva inserción proveniente de la nube
+      newCount++;
+      newIds.push(item.id);
       await dbInstance!.runAsync(
-        `INSERT INTO profesores_locales (server_id, nombre, imagen, formacion, sync_status, updated_at) 
-         VALUES (?, ?, ?, ?, 'synced', ?)`,
+        `INSERT INTO profesores_locales (server_id, nombre, imagen, formacion, sync_status, updated_at, is_cloud_new) 
+         VALUES (?, ?, ?, ?, 'synced', ?, 1)`,
         [item.id, item.nombre, item.imagen, item.formacion, now]
       );
     }
   }
+
+  return { newCount, newIds };
+}
+
+export async function markProfesorSeenAsRead(idOrServerId: number | string): Promise<void> {
+  await initDatabase();
+  const numId = Number(idOrServerId);
+  await dbInstance!.runAsync(
+    `UPDATE profesores_locales SET is_cloud_new = 0 WHERE server_id = ? OR id = ?`,
+    [numId, numId]
+  );
 }
 
 export async function getSyncStats(): Promise<{ pendingCount: number; totalLocal: number }> {
