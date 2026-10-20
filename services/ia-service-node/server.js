@@ -427,14 +427,6 @@ const server = http.createServer(async (req, res) => {
   if ((pathname === '/api/ia/ask' || pathname === '/api/ia') && (req.method === 'GET' || req.method === 'POST')) {
     try {
       const clientId = req.headers['x-client-id'] || req.socket.remoteAddress || 'default-user';
-      const limitInfo = obtenerInfoLimite(clientId);
-
-      if (limitInfo.isExceeded) {
-        return responderJSON(res, 429, {
-          error: `Has alcanzado el limite maximo de ${limitInfo.limit} preguntas permitidas en esta sesion.`,
-          limitInfo,
-        });
-      }
 
       let question = '';
       let mode = 'restricted';
@@ -463,6 +455,15 @@ const server = http.createServer(async (req, res) => {
 
       const cleanMode = mode === 'free' ? 'free' : 'restricted';
 
+      // El limite de 10 preguntas solo aplica al modo restringido (Base de Datos)
+      let limitInfo = obtenerInfoLimite(clientId);
+      if (cleanMode === 'restricted' && limitInfo.isExceeded) {
+        return responderJSON(res, 429, {
+          error: `Has alcanzado el limite maximo de ${limitInfo.limit} preguntas permitidas para consultas de la base de datos. Puedes seguir haciendo consultas en el modo General.`,
+          limitInfo,
+        });
+      }
+
       const [pokeInfo, animeInfo] = await Promise.all([
         obtenerPokemonsDeBaseDeDatos(),
         obtenerAnimesDeBaseDeDatos(),
@@ -477,7 +478,11 @@ const server = http.createServer(async (req, res) => {
         customApiKey
       );
 
-      const updatedLimit = registrarPregunta(clientId);
+      // Solo descontar del limite si la consulta fue en modo Base de Datos (restricted)
+      let updatedLimit = limitInfo;
+      if (cleanMode === 'restricted') {
+        updatedLimit = registrarPregunta(clientId);
+      }
 
       return responderJSON(res, 200, {
         question: String(question).trim(),

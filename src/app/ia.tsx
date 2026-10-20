@@ -74,8 +74,10 @@ export default function IAScreen() {
   }, []);
 
   const handleAsk = async () => {
-    if (limitInfo.isExceeded) {
-      setError(`Has alcanzado el limite maximo de ${limitInfo.limit} preguntas permitidas.`);
+    if (mode === 'restricted' && limitInfo.isExceeded) {
+      setError(
+        `Has alcanzado el limite maximo de ${limitInfo.limit} preguntas para la Base de Datos. Puedes cambiar al modo General para seguir consultando.`
+      );
       return;
     }
 
@@ -93,7 +95,7 @@ export default function IAScreen() {
       setLastResult(response);
       if (response.limitInfo) {
         setLimitInfo(response.limitInfo);
-      } else {
+      } else if (mode === 'restricted') {
         setLimitInfo((prev) => ({
           ...prev,
           used: prev.used + 1,
@@ -129,16 +131,20 @@ export default function IAScreen() {
             <View
               style={[
                 styles.limitPill,
-                limitInfo.isExceeded && styles.limitPillExceeded,
+                mode === 'free' && styles.limitPillFree,
+                mode === 'restricted' && limitInfo.isExceeded && styles.limitPillExceeded,
               ]}
             >
               <Text
                 style={[
                   styles.limitPillText,
-                  limitInfo.isExceeded && styles.limitPillTextExceeded,
+                  mode === 'free' && styles.limitPillTextFree,
+                  mode === 'restricted' && limitInfo.isExceeded && styles.limitPillTextExceeded,
                 ]}
               >
-                {limitInfo.remaining} / {limitInfo.limit} disponibles
+                {mode === 'restricted'
+                  ? `${limitInfo.remaining} / ${limitInfo.limit} en BD`
+                  : 'Consultas libres'}
               </Text>
             </View>
 
@@ -409,6 +415,10 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 6,
   },
+  limitPillFree: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#1565C0',
+  },
   limitPillExceeded: {
     backgroundColor: '#FFEBEE',
     borderColor: '#C62828',
@@ -417,6 +427,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: '#004D40',
+  },
+  limitPillTextFree: {
+    color: '#0D47A1',
   },
   limitPillTextExceeded: {
     color: '#C62828',
