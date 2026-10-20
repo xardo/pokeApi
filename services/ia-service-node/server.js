@@ -13,6 +13,8 @@ try {
 
 const PORT = process.env.PORT || 4005;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const POKEMON_SERVICE_URL = process.env.POKEMON_SERVICE_URL || 'https://pokeapi-cmsz.onrender.com';
@@ -238,13 +240,12 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
 
   if (!apiKey || apiKey === 'TU_API_KEY_DE_GOOGLE_AI_STUDIO_AQUI') {
     throw new Error(
-      'No se ha configurado GEMINI_API_KEY en el microservicio. Obtén tu clave en Google AI Studio (https://aistudio.google.com/) y configúrala en las variables de entorno de Render o en el archivo .env.'
+      'No se ha configurado GEMINI_API_KEY en el microservicio. Configurala en Render o en el archivo .env.'
     );
   }
 
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
 
-  // Lista de modelos disponibles en Google AI Studio ordenados por preferencia
   const modelosAProbar = [GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'].filter(
     (v, i, a) => Boolean(v) && a.indexOf(v) === i
   );
@@ -284,7 +285,6 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
       if (!response.ok) {
         const msg = data?.error?.message || `Error HTTP ${response.status} en modelo ${modelo}`;
         ultimoError = new Error(msg);
-        // Si es error de API Key inválida, no tiene sentido probar otro modelo
         if (response.status === 400 && msg.toLowerCase().includes('api key')) {
           throw ultimoError;
         }
@@ -293,11 +293,12 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
 
       const answerText =
         data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('\n') ||
-        'La IA no devolvió texto en la respuesta.';
+        'La IA no devolvio texto en la respuesta.';
 
       return {
         answer: answerText.trim(),
         model: modelo,
+        provider: 'Google Gemini',
       };
     } catch (err) {
       ultimoError = err;
@@ -305,6 +306,113 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
   }
 
   throw ultimoError || new Error('No fue posible obtener respuesta desde Google AI Studio.');
+}
+
+/**
+ * Consulta OpenAI (ChatGPT / GPT-4o-mini)
+ */
+async function consultarOpenAI(question, mode, contextoTexto, customApiKey) {
+  const apiKey = (customApiKey || OPENAI_API_KEY || '').trim();
+
+  if (!apiKey) {
+    throw new Error(
+      'No se ha configurado OPENAI_API_KEY en el microservicio. Agrega tu clave en Render o seleccionala desde el selector.'
+    );
+  }
+
+  const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
+
+  const endpoint = 'https://api.openai.com/v1/chat/completions';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: mode === 'restricted' ? 0.2 : 0.7,
+      max_tokens: 800,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `Error OpenAI HTTP ${response.status}`);
+  }
+
+  const answer = data?.choices?.[0]?.message?.content || 'Sin respuesta de OpenAI.';
+  return {
+    answer: answer.trim(),
+    model: data.model || 'gpt-4o-mini',
+    provider: 'OpenAI',
+  };
+}
+
+/**
+ * Consulta DeepSeek (deepseek-chat)
+ */
+async function consultarDeepSeek(question, mode, contextoTexto, customApiKey) {
+  const apiKey = (customApiKey || DEEPSEEK_API_KEY || '').trim();
+
+  if (!apiKey) {
+    throw new Error(
+      'No se ha configurado DEEPSEEK_API_KEY en el microservicio. Agrega tu clave en Render o seleccionala desde el selector.'
+    );
+  }
+
+  const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
+
+  const endpoint = 'https://api.deepseek.com/chat/completions';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: mode === 'restricted' ? 0.2 : 0.7,
+      max_tokens: 800,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `Error DeepSeek HTTP ${response.status}`);
+  }
+
+  const answer = data?.choices?.[0]?.message?.content || 'Sin respuesta de DeepSeek.';
+  return {
+    answer: answer.trim(),
+    model: data.model || 'deepseek-chat',
+    provider: 'DeepSeek',
+  };
+}
+
+/**
+ * Despachador según el proveedor de IA parametrizado por el frontend:
+ * 'gemini' | 'openai' | 'deepseek'
+ */
+async function despacharConsultaIA(provider, question, mode, contextoTexto, customApiKey) {
+  const p = (provider || 'gemini').toLowerCase().trim();
+
+  if (p === 'openai' || p === 'chatgpt') {
+    return await consultarOpenAI(question, mode, contextoTexto, customApiKey);
+  }
+  if (p === 'deepseek') {
+    return await consultarDeepSeek(question, mode, contextoTexto, customApiKey);
+  }
+  // Por defecto usa Google Gemini
+  return await consultarGoogleGemini(question, mode, contextoTexto, customApiKey);
 }
 
 function responderJSON(res, status, data) {
@@ -430,11 +538,15 @@ const server = http.createServer(async (req, res) => {
 
       let question = '';
       let mode = 'restricted';
-      let customApiKey = req.headers['x-gemini-api-key'] || '';
+      let provider = 'gemini';
+      let delaySimuladoMs = 0;
+      let customApiKey = req.headers['x-gemini-api-key'] || req.headers['x-api-key'] || '';
 
       if (req.method === 'GET') {
         question = url.searchParams.get('question') || url.searchParams.get('q') || '';
         mode = url.searchParams.get('mode') || 'restricted';
+        provider = url.searchParams.get('provider') || 'gemini';
+        delaySimuladoMs = parseInt(url.searchParams.get('delay') || '0', 10);
         if (url.searchParams.get('apiKey')) {
           customApiKey = url.searchParams.get('apiKey');
         }
@@ -442,9 +554,16 @@ const server = http.createServer(async (req, res) => {
         const body = await leerBodyJSON(req);
         question = body.question || body.q || body.prompt || '';
         mode = body.mode || 'restricted';
+        provider = body.provider || 'gemini';
+        delaySimuladoMs = parseInt(body.delay || '0', 10);
         if (body.apiKey) {
           customApiKey = body.apiKey;
         }
+      }
+
+      // Si el cliente pide simular una demora para probar los tiempos de espera
+      if (delaySimuladoMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delaySimuladoMs, 180000)));
       }
 
       if (!question || String(question).trim() === '') {
@@ -471,7 +590,8 @@ const server = http.createServer(async (req, res) => {
 
       const contextoTexto = construirResumenBaseDeDatos(pokeInfo.data, animeInfo.data);
 
-      const resultadoIA = await consultarGoogleGemini(
+      const resultadoIA = await despacharConsultaIA(
+        provider,
         String(question).trim(),
         cleanMode,
         contextoTexto,
@@ -491,8 +611,9 @@ const server = http.createServer(async (req, res) => {
           cleanMode === 'restricted'
             ? 'Limitado a Base de Datos Propia (10 Pokémon + 10 Personajes Death Note)'
             : 'Modo Libre (Cualquier pregunta)',
-        answer: resultadoIA.answer,
+        provider: resultadoIA.provider,
         model: resultadoIA.model,
+        answer: resultadoIA.answer,
         limitInfo: updatedLimit,
         sources: {
           pokemon: pokeInfo.source,

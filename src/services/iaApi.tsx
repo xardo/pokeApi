@@ -1,6 +1,8 @@
 import { GET_IA_BASE_URL, GET_IA_LOCAL_BASE_URL } from '@/constants/apiConfig';
 
 export type IAMode = 'restricted' | 'free';
+export type IAProvider = 'gemini' | 'openai' | 'deepseek';
+export type IATimeoutSeconds = 20 | 40 | 80 | 160;
 
 export interface IALimitInfo {
   limit: number;
@@ -13,8 +15,9 @@ export interface IAResponse {
   question: string;
   mode: IAMode;
   modeDescription: string;
-  answer: string;
+  provider?: string;
   model: string;
+  answer: string;
   limitInfo?: IALimitInfo;
   sources?: {
     pokemon: string;
@@ -37,11 +40,16 @@ export interface IAContextData {
 
 /**
  * Envía una pregunta al Microservicio de Inteligencia Artificial (Render o Local)
- * usando fetch (GET o POST) hacia el backend que conecta con Google AI Studio (Gemini).
+ * parametrizando desde el frontend:
+ * - El modo ('restricted' | 'free')
+ * - El proveedor de IA ('gemini' | 'openai' | 'deepseek')
+ * - El tiempo de espera / timeout (20s, 40s, 80s, 160s)
  */
 export async function askIA(
   question: string,
   mode: IAMode = 'restricted',
+  provider: IAProvider = 'gemini',
+  timeoutSeconds: IATimeoutSeconds = 20,
   customApiKey?: string
 ): Promise<IAResponse> {
   const cleanQuestion = question.trim();
@@ -54,10 +62,11 @@ export async function askIA(
   );
 
   let lastError: Error | null = null;
+  const timeoutMs = timeoutSeconds * 1000;
 
   for (const baseUrl of urlsToTry) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const headers: Record<string, string> = {
@@ -66,6 +75,7 @@ export async function askIA(
       };
       if (customApiKey && customApiKey.trim() !== '') {
         headers['X-Gemini-Api-Key'] = customApiKey.trim();
+        headers['X-Api-Key'] = customApiKey.trim();
       }
 
       const response = await fetch(`${baseUrl}/ask`, {
@@ -75,6 +85,7 @@ export async function askIA(
         body: JSON.stringify({
           question: cleanQuestion,
           mode,
+          provider,
           apiKey: customApiKey?.trim() || undefined,
         }),
       });
@@ -91,7 +102,9 @@ export async function askIA(
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        lastError = new Error('Tiempo de espera agotado al consultar el microservicio de IA.');
+        lastError = new Error(
+          `Tiempo de espera agotado (${timeoutSeconds} segundos). El servidor no respondió dentro del límite parametrizado.`
+        );
       } else {
         lastError = new Error(err?.message || 'No se pudo conectar con el microservicio de IA.');
       }
@@ -101,7 +114,7 @@ export async function askIA(
   throw (
     lastError ||
     new Error(
-      'No se pudo conectar con el microservicio de IA. Verifica que esté corriendo en el puerto 4005 o desplegado en Render.'
+      'No se pudo conectar con el microservicio de IA. Verifica la conexion o el tiempo de espera.'
     )
   );
 }

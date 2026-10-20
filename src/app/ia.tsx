@@ -18,7 +18,9 @@ import {
   IAContextData,
   IALimitInfo,
   IAMode,
+  IAProvider,
   IAResponse,
+  IATimeoutSeconds,
 } from '@/services/iaApi';
 
 const DEFAULT_POKEMONS = [
@@ -47,10 +49,21 @@ const DEFAULT_CHARACTERS = [
   'Bullook, Halle',
 ];
 
+const TIMEOUT_OPTIONS: IATimeoutSeconds[] = [20, 40, 80, 160];
+
+const PROVIDER_OPTIONS: { id: IAProvider; label: string; desc: string }[] = [
+  { id: 'gemini', label: 'Google Gemini', desc: 'gemini-2.5-flash' },
+  { id: 'openai', label: 'OpenAI', desc: 'gpt-4o-mini' },
+  { id: 'deepseek', label: 'DeepSeek', desc: 'deepseek-chat' },
+];
+
 export default function IAScreen() {
   const [question, setQuestion] = useState('');
   const [mode, setMode] = useState<IAMode>('restricted');
+  const [provider, setProvider] = useState<IAProvider>('gemini');
+  const [timeoutSeconds, setTimeoutSeconds] = useState<IATimeoutSeconds>(20);
   const [loading, setLoading] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [error, setError] = useState('');
   const [lastResult, setLastResult] = useState<IAResponse | null>(null);
   const [history, setHistory] = useState<IAResponse[]>([]);
@@ -88,10 +101,16 @@ export default function IAScreen() {
 
     Keyboard.dismiss();
     setLoading(true);
+    setElapsedTime(0);
     setError('');
 
+    const start = Date.now();
+    const timer = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+
     try {
-      const response = await askIA(question.trim(), mode);
+      const response = await askIA(question.trim(), mode, provider, timeoutSeconds);
       setLastResult(response);
       if (response.limitInfo) {
         setLimitInfo(response.limitInfo);
@@ -107,6 +126,7 @@ export default function IAScreen() {
     } catch (err: any) {
       setError(err?.message || 'Error al consultar el servicio.');
     } finally {
+      clearInterval(timer);
       setLoading(false);
     }
   };
@@ -158,6 +178,72 @@ export default function IAScreen() {
           </View>
         </View>
 
+        {/* Parametrizacion del Servicio de Inteligencia Artificial (Gemini, OpenAI, DeepSeek) */}
+        <View style={styles.paramCard}>
+          <Text style={styles.paramSectionLabel}>Servicio de Inteligencia Artificial:</Text>
+          <View style={styles.paramRow}>
+            {PROVIDER_OPTIONS.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.providerBtn,
+                  provider === item.id && styles.providerBtnActive,
+                ]}
+                onPress={() => setProvider(item.id)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.providerBtnText,
+                    provider === item.id && styles.providerBtnTextActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.providerSubText,
+                    provider === item.id && styles.providerBtnTextActive,
+                  ]}
+                >
+                  {item.desc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Parametrizacion del Tiempo de Espera (20s, 40s, 80s, 160s) */}
+        <View style={styles.paramCard}>
+          <View style={styles.timeoutHeaderRow}>
+            <Text style={styles.paramSectionLabel}>Tiempo de espera del backend (timeout):</Text>
+            <Text style={styles.timeoutCurrentLabel}>{timeoutSeconds}s maximo</Text>
+          </View>
+          <View style={styles.paramRow}>
+            {TIMEOUT_OPTIONS.map((sec) => (
+              <TouchableOpacity
+                key={sec}
+                style={[
+                  styles.timeoutBtn,
+                  timeoutSeconds === sec && styles.timeoutBtnActive,
+                ]}
+                onPress={() => setTimeoutSeconds(sec)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.timeoutBtnText,
+                    timeoutSeconds === sec && styles.timeoutBtnTextActive,
+                  ]}
+                >
+                  {sec} seg
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Modo de consulta: Base de Datos vs General */}
         <View style={styles.modeSelectorCard}>
           <Text style={styles.modeSectionLabel}>Modo de consulta:</Text>
           <View style={styles.modeButtonsRow}>
@@ -183,7 +269,7 @@ export default function IAScreen() {
                   mode === 'restricted' && styles.modeBtnTextActive,
                 ]}
               >
-                Pokemon y Anime
+                Pokemon y Anime (10/10)
               </Text>
             </TouchableOpacity>
 
@@ -215,9 +301,12 @@ export default function IAScreen() {
           </View>
         </View>
 
+        {/* Pantalla de respuesta */}
         <View style={styles.displayScreenOuter}>
           <View style={styles.displayScreenHeader}>
-            <Text style={styles.displayScreenHeaderText}>Respuesta</Text>
+            <Text style={styles.displayScreenHeaderText}>
+              {lastResult ? `Respuesta (${lastResult.provider || provider} - ${lastResult.model})` : 'Respuesta'}
+            </Text>
             {lastResult && (
               <View
                 style={[
@@ -238,7 +327,9 @@ export default function IAScreen() {
             {loading ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator size="large" color="#2E7D32" />
-                <Text style={styles.loadingText}>Procesando consulta...</Text>
+                <Text style={styles.loadingText}>
+                  Consultando {provider.toUpperCase()}... ({elapsedTime}s / {timeoutSeconds}s)
+                </Text>
               </View>
             ) : error !== '' ? (
               <View style={styles.errorBox}>
@@ -265,9 +356,7 @@ export default function IAScreen() {
           {lastResult && !loading && (
             <View style={styles.displayFooterRow}>
               <Text style={styles.sourceInfoText}>
-                {lastResult.mode === 'restricted'
-                  ? 'Filtro: PostgreSQL / Firebase'
-                  : 'Modo general'}
+                Servicio: {lastResult.provider || provider} | Modelo: {lastResult.model}
               </Text>
               <TouchableOpacity
                 style={styles.clearResultBtn}
@@ -318,7 +407,7 @@ export default function IAScreen() {
                     {item.question}
                   </Text>
                   <Text style={styles.historyModeTag}>
-                    {item.mode === 'restricted' ? 'BD' : 'General'}
+                    {item.provider || 'IA'} - {item.mode === 'restricted' ? 'BD' : 'General'}
                   </Text>
                 </View>
                 <Text style={styles.historyA} numberOfLines={3}>
@@ -392,7 +481,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   headerTitleBox: {
     flex: 1,
@@ -401,6 +490,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#1B5E20',
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#555555',
+    marginTop: 2,
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -434,11 +528,6 @@ const styles = StyleSheet.create({
   limitPillTextExceeded: {
     color: '#C62828',
   },
-  subtitle: {
-    fontSize: 12,
-    color: '#555555',
-    marginTop: 2,
-  },
   dbBadgeBtn: {
     backgroundColor: '#E8F5E9',
     borderWidth: 1,
@@ -452,32 +541,111 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 12,
   },
+  paramCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  paramSectionLabel: {
+    fontSize: 11.5,
+    fontWeight: 'bold',
+    color: '#444444',
+    marginBottom: 6,
+  },
+  timeoutHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeoutCurrentLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+    marginBottom: 6,
+  },
+  paramRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  providerBtn: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  providerBtnActive: {
+    backgroundColor: '#1B5E20',
+    borderColor: '#1B5E20',
+  },
+  providerBtnText: {
+    fontSize: 11.5,
+    fontWeight: 'bold',
+    color: '#333333',
+    textAlign: 'center',
+  },
+  providerSubText: {
+    fontSize: 9.5,
+    color: '#777777',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  providerBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  timeoutBtn: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    borderRadius: 8,
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  timeoutBtnActive: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#1B5E20',
+  },
+  timeoutBtnText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  timeoutBtnTextActive: {
+    color: '#FFFFFF',
+  },
   modeSelectorCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
   modeSectionLabel: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: 'bold',
     color: '#444444',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   modeButtonsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   modeBtn: {
     flex: 1,
     backgroundColor: '#F5F5F5',
     borderWidth: 1.5,
     borderColor: '#DDDDDD',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
     alignItems: 'center',
   },
   modeBtnRestrictedActive: {
@@ -489,13 +657,13 @@ const styles = StyleSheet.create({
     borderColor: '#0D47A1',
   },
   modeBtnTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#333333',
     textAlign: 'center',
   },
   modeBtnSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666666',
     marginTop: 2,
     textAlign: 'center',
@@ -505,22 +673,22 @@ const styles = StyleSheet.create({
   },
   displayScreenOuter: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2.5,
+    borderWidth: 2,
     borderColor: '#2E7D32',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
-    minHeight: 210,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    minHeight: 180,
     justifyContent: 'space-between',
   },
   displayScreenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   displayScreenHeaderText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: 'bold',
     color: '#1B5E20',
   },
@@ -541,63 +709,64 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
   },
   displayScreenInner: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#4CAF50',
     backgroundColor: '#F9FBF9',
-    borderRadius: 10,
-    padding: 14,
-    minHeight: 130,
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 110,
     justifyContent: 'center',
   },
   loadingBox: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 8,
     color: '#2E7D32',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
     textAlign: 'center',
   },
   errorBox: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   errorTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#C62828',
     marginBottom: 4,
   },
   errorText: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#B71C1C',
     textAlign: 'center',
+    lineHeight: 17,
   },
   questionAskedLabel: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: 'bold',
     color: '#555555',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   answerText: {
-    fontSize: 14,
+    fontSize: 13.5,
     color: '#1E1E1E',
-    lineHeight: 21,
+    lineHeight: 20,
   },
   emptyStateBox: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   emptyQuestionMark: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#2E7D32',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   emptyStateText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#555555',
     textAlign: 'center',
   },
@@ -605,48 +774,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   sourceInfoText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#666666',
     flex: 1,
   },
   clearResultBtn: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E53935',
     backgroundColor: '#FFF5F5',
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   clearResultBtnText: {
     color: '#E53935',
     fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 11,
   },
   inputBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#222222',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 16,
+    borderRadius: 8,
+    padding: 3,
+    marginBottom: 14,
   },
   questionInput: {
     flex: 1,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    fontSize: 14,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    fontSize: 13.5,
     color: '#222222',
   },
   sendButton: {
     backgroundColor: '#2E7D32',
-    paddingHorizontal: 18,
-    height: 44,
-    borderRadius: 7,
+    paddingHorizontal: 16,
+    height: 42,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -656,108 +825,108 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
   },
   historySection: {
-    marginTop: 4,
+    marginTop: 2,
   },
   historyTitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: 'bold',
     color: '#444444',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   historyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
   historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 3,
     gap: 8,
   },
   historyQ: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#222222',
     flex: 1,
   },
   historyModeTag: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: 'bold',
     color: '#2E7D32',
     backgroundColor: '#E8F5E9',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
   },
   historyA: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#555555',
-    lineHeight: 17,
+    lineHeight: 16,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    padding: 18,
+    padding: 16,
   },
   modalCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#222222',
   },
   modalCloseBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: '#EEEEEE',
     borderRadius: 6,
   },
   modalCloseBtnText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: 'bold',
     color: '#444444',
   },
   dbGroupTitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: 'bold',
     color: '#1B5E20',
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 6,
+    marginBottom: 6,
   },
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   pokemonTag: {
     backgroundColor: '#E8F5E9',
     borderWidth: 1,
     borderColor: '#81C784',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   pokemonTagText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#1B5E20',
   },
@@ -765,12 +934,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFEBEE',
     borderWidth: 1,
     borderColor: '#E57373',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   animeTagText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#B71C1C',
   },
