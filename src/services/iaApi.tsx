@@ -1,7 +1,7 @@
 import { GET_IA_BASE_URL, GET_IA_LOCAL_BASE_URL } from '@/constants/apiConfig';
 
 export type IAMode = 'restricted' | 'free';
-export type IAProvider = 'gemini' | 'openai' | 'deepseek';
+export type IAProvider = 'flash' | 'pro' | 'gemma';
 export type IATimeoutSeconds = 20 | 40 | 80 | 160;
 
 export interface IALimitInfo {
@@ -48,7 +48,7 @@ export interface IAContextData {
 export async function askIA(
   question: string,
   mode: IAMode = 'restricted',
-  provider: IAProvider = 'gemini',
+  provider: IAProvider = 'flash',
   timeoutSeconds: IATimeoutSeconds = 20,
   customApiKey?: string
 ): Promise<IAResponse> {

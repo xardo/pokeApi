@@ -52,15 +52,15 @@ const DEFAULT_CHARACTERS = [
 const TIMEOUT_OPTIONS: IATimeoutSeconds[] = [20, 40, 80, 160];
 
 const PROVIDER_OPTIONS: { id: IAProvider; label: string; desc: string }[] = [
-  { id: 'gemini', label: 'Google Gemini', desc: 'gemini-2.5-flash' },
-  { id: 'openai', label: 'OpenAI', desc: 'gpt-4o-mini' },
-  { id: 'deepseek', label: 'DeepSeek', desc: 'deepseek-chat' },
+  { id: 'flash', label: 'Gemini Flash', desc: 'gemini-2.5-flash (Rapido)' },
+  { id: 'pro', label: 'Gemini Pro', desc: 'gemini-2.5-pro (Avanzado)' },
+  { id: 'gemma', label: 'Gemma 4', desc: 'gemma-4-31b (Abierto)' },
 ];
 
 export default function IAScreen() {
   const [question, setQuestion] = useState('');
   const [mode, setMode] = useState<IAMode>('restricted');
-  const [provider, setProvider] = useState<IAProvider>('gemini');
+  const [provider, setProvider] = useState<IAProvider>('flash');
   const [timeoutSeconds, setTimeoutSeconds] = useState<IATimeoutSeconds>(20);
   const [loading, setLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -178,9 +178,9 @@ export default function IAScreen() {
           </View>
         </View>
 
-        {/* Parametrizacion del Servicio de Inteligencia Artificial (Gemini, OpenAI, DeepSeek) */}
+        {/* Parametrizacion del Servicio de Inteligencia Artificial (Gemini Flash, Gemini Pro, Gemma) */}
         <View style={styles.paramCard}>
-          <Text style={styles.paramSectionLabel}>Servicio de Inteligencia Artificial:</Text>
+          <Text style={styles.paramSectionLabel}>Modelo de Inteligencia Artificial (Google AI Studio):</Text>
           <View style={styles.paramRow}>
             {PROVIDER_OPTIONS.map((item) => (
               <TouchableOpacity

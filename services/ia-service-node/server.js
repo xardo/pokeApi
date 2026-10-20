@@ -235,7 +235,13 @@ REGLAS DE RESPUESTA:
 /**
  * Llama a la API pública de Google AI Studio (Gemini) usando fetch nativo
  */
-async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey) {
+const MODEL_ALIASES = {
+  flash: 'gemini-2.5-flash',
+  pro: 'gemini-2.5-pro',
+  gemma: 'gemma-4-31b-it',
+};
+
+async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey, requestedModel) {
   const apiKey = (customApiKey || GEMINI_API_KEY || '').trim();
 
   if (!apiKey || apiKey === 'TU_API_KEY_DE_GOOGLE_AI_STUDIO_AQUI') {
@@ -246,9 +252,16 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
 
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
 
-  const modelosAProbar = [GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'].filter(
-    (v, i, a) => Boolean(v) && a.indexOf(v) === i
-  );
+  const modelKey = (requestedModel || 'flash').toLowerCase().trim();
+  const targetModel = MODEL_ALIASES[modelKey] || modelKey || GEMINI_MODEL;
+
+  // Lista de modelos ordenados priorizando el seleccionado por el usuario en el front
+  const modelosAProbar = [
+    targetModel,
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-2.5-pro',
+  ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
 
   let ultimoError = null;
 
@@ -295,10 +308,14 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
         data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('\n') ||
         'La IA no devolvio texto en la respuesta.';
 
+      let displayName = 'Gemini Flash';
+      if (modelo.includes('pro')) displayName = 'Gemini Pro';
+      else if (modelo.includes('gemma')) displayName = 'Gemma 4';
+
       return {
         answer: answerText.trim(),
         model: modelo,
-        provider: 'Google Gemini',
+        provider: displayName,
       };
     } catch (err) {
       ultimoError = err;
@@ -308,111 +325,8 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
   throw ultimoError || new Error('No fue posible obtener respuesta desde Google AI Studio.');
 }
 
-/**
- * Consulta OpenAI (ChatGPT / GPT-4o-mini)
- */
-async function consultarOpenAI(question, mode, contextoTexto, customApiKey) {
-  const apiKey = (customApiKey || OPENAI_API_KEY || '').trim();
-
-  if (!apiKey) {
-    throw new Error(
-      'No se ha configurado OPENAI_API_KEY en el microservicio. Agrega tu clave en Render o seleccionala desde el selector.'
-    );
-  }
-
-  const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
-
-  const endpoint = 'https://api.openai.com/v1/chat/completions';
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: mode === 'restricted' ? 0.2 : 0.7,
-      max_tokens: 800,
-    }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data?.error?.message || `Error OpenAI HTTP ${response.status}`);
-  }
-
-  const answer = data?.choices?.[0]?.message?.content || 'Sin respuesta de OpenAI.';
-  return {
-    answer: answer.trim(),
-    model: data.model || 'gpt-4o-mini',
-    provider: 'OpenAI',
-  };
-}
-
-/**
- * Consulta DeepSeek (deepseek-chat)
- */
-async function consultarDeepSeek(question, mode, contextoTexto, customApiKey) {
-  const apiKey = (customApiKey || DEEPSEEK_API_KEY || '').trim();
-
-  if (!apiKey) {
-    throw new Error(
-      'No se ha configurado DEEPSEEK_API_KEY en el microservicio. Agrega tu clave en Render o seleccionala desde el selector.'
-    );
-  }
-
-  const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
-
-  const endpoint = 'https://api.deepseek.com/chat/completions';
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: mode === 'restricted' ? 0.2 : 0.7,
-      max_tokens: 800,
-    }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data?.error?.message || `Error DeepSeek HTTP ${response.status}`);
-  }
-
-  const answer = data?.choices?.[0]?.message?.content || 'Sin respuesta de DeepSeek.';
-  return {
-    answer: answer.trim(),
-    model: data.model || 'deepseek-chat',
-    provider: 'DeepSeek',
-  };
-}
-
-/**
- * Despachador según el proveedor de IA parametrizado por el frontend:
- * 'gemini' | 'openai' | 'deepseek'
- */
-async function despacharConsultaIA(provider, question, mode, contextoTexto, customApiKey) {
-  const p = (provider || 'gemini').toLowerCase().trim();
-
-  if (p === 'openai' || p === 'chatgpt') {
-    return await consultarOpenAI(question, mode, contextoTexto, customApiKey);
-  }
-  if (p === 'deepseek') {
-    return await consultarDeepSeek(question, mode, contextoTexto, customApiKey);
-  }
-  // Por defecto usa Google Gemini
-  return await consultarGoogleGemini(question, mode, contextoTexto, customApiKey);
+async function despacharConsultaIA(requestedModel, question, mode, contextoTexto, customApiKey) {
+  return await consultarGoogleGemini(question, mode, contextoTexto, customApiKey, requestedModel);
 }
 
 function responderJSON(res, status, data) {
