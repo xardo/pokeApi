@@ -52,9 +52,9 @@ const DEFAULT_CHARACTERS = [
 const TIMEOUT_OPTIONS: IATimeoutSeconds[] = [20, 40, 80, 160];
 
 const PROVIDER_OPTIONS: { id: IAProvider; label: string; desc: string }[] = [
-  { id: 'flash', label: 'Gemini Flash', desc: 'gemini-2.5-flash (Rapido)' },
-  { id: 'pro', label: 'Gemini Pro', desc: 'gemini-2.5-pro (Avanzado)' },
-  { id: 'gemma', label: 'Gemma 4', desc: 'gemma-4-31b (Abierto)' },
+  { id: 'flash', label: 'Gemini 3.8 Flash', desc: 'gemini-3.8-flash (Estandar)' },
+  { id: 'lite', label: 'Gemini Flash Lite', desc: 'gemini-3.1-flash-lite (Ligero)' },
+  { id: 'gemma', label: 'Gemma 4', desc: 'gemma-4-26b (Open Model)' },
 ];
 
 export default function IAScreen() {

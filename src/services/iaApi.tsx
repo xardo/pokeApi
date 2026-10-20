@@ -1,7 +1,7 @@
 import { GET_IA_BASE_URL, GET_IA_LOCAL_BASE_URL } from '@/constants/apiConfig';
 
 export type IAMode = 'restricted' | 'free';
-export type IAProvider = 'flash' | 'pro' | 'gemma';
+export type IAProvider = 'flash' | 'lite' | 'gemma';
 export type IATimeoutSeconds = 20 | 40 | 80 | 160;
 
 export interface IALimitInfo {

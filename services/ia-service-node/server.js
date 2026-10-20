@@ -236,9 +236,9 @@ REGLAS DE RESPUESTA:
  * Llama a la API pública de Google AI Studio (Gemini) usando fetch nativo
  */
 const MODEL_ALIASES = {
-  flash: 'gemini-2.5-flash',
-  pro: 'gemini-2.5-pro',
-  gemma: 'gemma-4-31b-it',
+  flash: 'gemini-3.8-flash',
+  lite: 'gemini-3.1-flash-lite',
+  gemma: 'gemma-4-26b-a4b-it',
 };
 
 async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey, requestedModel) {
@@ -253,76 +253,54 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
 
   const modelKey = (requestedModel || 'flash').toLowerCase().trim();
-  const targetModel = MODEL_ALIASES[modelKey] || modelKey || GEMINI_MODEL;
+  const targetModel = MODEL_ALIASES[modelKey] || modelKey || 'gemini-3.8-flash';
 
-  // Lista de modelos ordenados priorizando el seleccionado por el usuario en el front
-  const modelosAProbar = [
-    targetModel,
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'gemini-2.5-pro',
-  ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(
+    apiKey
+  )}`;
 
-  let ultimoError = null;
+  const payload = {
+    system_instruction: {
+      parts: [{ text: systemInstruction }],
+    },
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: userPrompt }],
+      },
+    ],
+    generationConfig: {
+      temperature: mode === 'restricted' ? 0.2 : 0.7,
+      maxOutputTokens: 800,
+    },
+  };
 
-  for (const modelo of modelosAProbar) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${encodeURIComponent(
-        apiKey
-      )}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 
-      const payload = {
-        system_instruction: {
-          parts: [{ text: systemInstruction }],
-        },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: userPrompt }],
-          },
-        ],
-        generationConfig: {
-          temperature: mode === 'restricted' ? 0.2 : 0.7,
-          maxOutputTokens: 800,
-        },
-      };
+  const data = await response.json();
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const msg = data?.error?.message || `Error HTTP ${response.status} en modelo ${modelo}`;
-        ultimoError = new Error(msg);
-        if (response.status === 400 && msg.toLowerCase().includes('api key')) {
-          throw ultimoError;
-        }
-        continue;
-      }
-
-      const answerText =
-        data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('\n') ||
-        'La IA no devolvio texto en la respuesta.';
-
-      let displayName = 'Gemini Flash';
-      if (modelo.includes('pro')) displayName = 'Gemini Pro';
-      else if (modelo.includes('gemma')) displayName = 'Gemma 4';
-
-      return {
-        answer: answerText.trim(),
-        model: modelo,
-        provider: displayName,
-      };
-    } catch (err) {
-      ultimoError = err;
-    }
+  if (!response.ok) {
+    const msg = data?.error?.message || `Error HTTP ${response.status} en modelo ${targetModel}`;
+    throw new Error(msg);
   }
 
-  throw ultimoError || new Error('No fue posible obtener respuesta desde Google AI Studio.');
+  const answerText =
+    data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('\n') ||
+    'La IA no devolvio texto en la respuesta.';
+
+  let displayName = 'Gemini 3.8 Flash';
+  if (targetModel.includes('lite')) displayName = 'Gemini 3.1 Flash Lite';
+  else if (targetModel.includes('gemma')) displayName = 'Gemma 4 (Open Model)';
+
+  return {
+    answer: answerText.trim(),
+    model: targetModel,
+    provider: displayName,
+  };
 }
 
 async function despacharConsultaIA(requestedModel, question, mode, contextoTexto, customApiKey) {
