@@ -13,6 +13,7 @@ export default function RootLayout() {
   const isNote = pathname === '/note';
   const isNoteDetails = pathname === '/note-details';
   const isProfesor = pathname === '/profesor';
+  const isIA = pathname === '/ia';
 
   return (
     <PokemonProvider>
@@ -67,6 +68,15 @@ export default function RootLayout() {
                 Profesor
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.navButton, isIA && styles.navButtonActiveIA]}
+              onPress={() => router.replace('/ia' as any)}
+            >
+              <Text style={[styles.navButtonText, isIA && styles.navButtonTextActive]}>
+                IA
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </NoteProvider>
@@ -110,8 +120,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6F00',
     borderColor: '#FF6F00',
   },
+  navButtonActiveIA: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
+  },
   navButtonText: {
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#555555',
     textAlign: 'center',

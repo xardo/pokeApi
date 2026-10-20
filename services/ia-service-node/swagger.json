@@ -1,0 +1,106 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microservicio de Inteligencia Artificial (PokeAnime IA)",
+    "version": "1.0.0",
+    "description": "Microservicio intermediario que conecta la App en Expo con la API pública de Google AI Studio (Gemini). Permite dos modos de consulta: Modo Libre (contesta cualquier pregunta) y Modo Base de Datos (restringe estrictamente las respuestas a los 10 Pokémon en PostgreSQL/Neon y los 10 personajes de Death Note en Firebase)."
+  },
+  "paths": {
+    "/api/ia/ask": {
+      "get": {
+        "tags": ["Consultas IA"],
+        "summary": "Consultar a la IA mediante GET (Query Params)",
+        "description": "Envía una pregunta a Google Gemini a través del microservicio usando parámetros en la URL.",
+        "parameters": [
+          {
+            "name": "question",
+            "in": "query",
+            "required": true,
+            "description": "Pregunta que deseas hacerle a la Inteligencia Artificial",
+            "schema": {
+              "type": "string",
+              "example": "¿Quién es L Lawliet y cuánto pesa Charizard?"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "description": "'restricted' para limitar solo a los 10 Pokémon y 10 personajes de Death Note de la BD propia; 'free' para responder cualquier pregunta general.",
+            "schema": {
+              "type": "string",
+              "enum": ["restricted", "free"],
+              "default": "restricted"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respuesta generada por la Inteligencia Artificial"
+          },
+          "400": {
+            "description": "Parámetro question faltante"
+          },
+          "500": {
+            "description": "Error al consultar la API de IA"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Consultas IA"],
+        "summary": "Consultar a la IA mediante POST (JSON Body)",
+        "description": "Envía una pregunta a Google Gemini en el cuerpo de la petición.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question"],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "example": "¿Cuáles son los ataques de Bulbasaur y quién hace la voz en español de Light Yagami?"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["restricted", "free"],
+                    "default": "restricted"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta generada por la Inteligencia Artificial"
+          }
+        }
+      }
+    },
+    "/api/ia/context": {
+      "get": {
+        "tags": ["Base de Datos Propia"],
+        "summary": "Ver los 10 Pokémon y 10 Personajes cargados como contexto",
+        "description": "Muestra exactamente los datos de la base de datos propia (10 Pokémon y 10 personajes de Death Note) que el microservicio inyecta para limitar las respuestas de la IA.",
+        "responses": {
+          "200": {
+            "description": "Datos actuales del contexto"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Estado"],
+        "summary": "Verificar estado del microservicio y conexión con Gemini",
+        "responses": {
+          "200": {
+            "description": "Microservicio operativo"
+          }
+        }
+      }
+    }
+  }
+}

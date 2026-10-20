@@ -11,6 +11,26 @@ export const DOCENTE_ELIMINAR_URL: string = 'https://docente-eliminar-service.on
 export const PROFESOR_CLOUD_URL: string = 'https://profesor-service-node.onrender.com';
 export const DOCENTE_CLOUD_URL = PROFESOR_CLOUD_URL;
 
+// URL del Microservicio de Inteligencia Artificial (Google AI Studio / Gemini) desplegado en Render
+export const IA_CLOUD_URL: string = 'https://ia-service-node.onrender.com';
+
+export const GET_IA_BASE_URL = (): string => {
+  if (IA_CLOUD_URL && IA_CLOUD_URL.trim() !== '') {
+    return `${IA_CLOUD_URL.replace(/\/$/, '')}/api/ia`;
+  }
+  return Platform.select({
+    android: 'http://10.0.2.2:4005/api/ia',
+    default: 'http://localhost:4005/api/ia',
+  }) || 'http://localhost:4005/api/ia';
+};
+
+export const GET_IA_LOCAL_BASE_URL = (): string => {
+  return Platform.select({
+    android: 'http://10.0.2.2:4005/api/ia',
+    default: 'http://localhost:4005/api/ia',
+  }) || 'http://localhost:4005/api/ia';
+};
+
 export const GET_POKEMON_BASE_URL = (): string => {
   if (POKEMON_CLOUD_URL && POKEMON_CLOUD_URL.trim() !== '') {
     return `${POKEMON_CLOUD_URL.replace(/\/$/, '')}/api/pokemon`;
