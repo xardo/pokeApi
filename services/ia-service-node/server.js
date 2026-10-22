@@ -16,7 +16,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const POKEMON_SERVICE_URL = process.env.POKEMON_SERVICE_URL || 'https://pokeapi-cmsz.onrender.com';
 const ANIME_SERVICE_URL = process.env.ANIME_SERVICE_URL || 'https://anime-service-python.onrender.com';
@@ -237,8 +237,11 @@ REGLAS DE RESPUESTA:
  * Llama a la API pública de Google AI Studio (Gemini) usando fetch nativo
  */
 const MODEL_ALIASES = {
+  gemini: 'gemini-3.8-flash',
   flash: 'gemini-3.8-flash',
+  'gemini-flash': 'gemini-3.8-flash',
   lite: 'gemini-3.1-flash-lite',
+  'gemini-lite': 'gemini-3.1-flash-lite',
   gemma: 'gemma-4-26b-a4b-it',
 };
 
@@ -254,7 +257,7 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
 
   const modelKey = (requestedModel || 'flash').toLowerCase().trim();
-  const targetModel = MODEL_ALIASES[modelKey] || (modelKey === 'gemini' ? 'gemini-2.5-flash' : modelKey) || 'gemini-2.5-flash';
+  const targetModel = MODEL_ALIASES[modelKey] || (modelKey === 'gemini' ? 'gemini-3.8-flash' : modelKey) || 'gemini-3.8-flash';
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(
     apiKey
