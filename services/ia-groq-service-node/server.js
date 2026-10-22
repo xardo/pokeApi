@@ -324,6 +324,24 @@ const server = http.createServer(async (req, res) => {
     return res.end(fs.readFileSync(jsonPath, 'utf8'));
   }
 
+  
+  // Listar los modelos exactos disponibles para la API Key actual
+  if (pathname === '/api/ia/models' && req.method === 'GET') {
+    const apiKey = (req.headers['x-groq-api-key'] || req.headers['x-api-key'] || GROQ_API_KEY || '').trim();
+    if (!apiKey) {
+      return responderJSON(res, 400, { error: 'Falta GROQ_API_KEY' });
+    }
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const data = await resp.json();
+      return responderJSON(res, resp.status, data);
+    } catch (e) {
+      return responderJSON(res, 500, { error: e.message });
+    }
+  }
+
   // Health Check
   if (pathname === '/api/health' && req.method === 'GET') {
     const pokeInfo = await obtenerPokemonsDeBaseDeDatos();
