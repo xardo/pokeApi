@@ -52,15 +52,17 @@ const DEFAULT_CHARACTERS = [
 const TIMEOUT_OPTIONS: IATimeoutSeconds[] = [20, 40, 80, 160];
 
 const PROVIDER_OPTIONS: { id: IAProvider; label: string; desc: string }[] = [
-  { id: 'flash', label: 'Gemini 3.8 Flash', desc: 'gemini-3.8-flash (Estandar)' },
-  { id: 'lite', label: 'Gemini Flash Lite', desc: 'gemini-3.1-flash-lite (Ligero)' },
-  { id: 'gemma', label: 'Gemma 4', desc: 'gemma-4-26b (Open Model)' },
+  { id: 'groq', label: 'Groq (Llama 3.3)', desc: 'Gratis & Ultra Rápido (70B)' },
+  { id: 'llama-8b', label: 'Groq (Llama 3.1 8B)', desc: 'Gratis & Instantáneo (8B)' },
+  { id: 'flash', label: 'Gemini 3.8 Flash', desc: 'Google AI Studio (Estándar)' },
+  { id: 'lite', label: 'Gemini Flash Lite', desc: 'Google AI Studio (Ligero)' },
+  { id: 'gemma', label: 'Gemma 4', desc: 'Google Gemma (Open Model)' },
 ];
 
 export default function IAScreen() {
   const [question, setQuestion] = useState('');
   const [mode, setMode] = useState<IAMode>('restricted');
-  const [provider, setProvider] = useState<IAProvider>('flash');
+  const [provider, setProvider] = useState<IAProvider>('groq');
   const [timeoutSeconds, setTimeoutSeconds] = useState<IATimeoutSeconds>(20);
   const [loading, setLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);

@@ -13,6 +13,7 @@ try {
 
 const PORT = process.env.PORT || 4005;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -303,7 +304,57 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
   };
 }
 
+
+/**
+ * Llama a la API de Groq Cloud (Modelos Llama 3 / Mixtral rápidos y gratuitos)
+ */
+async function consultarGroq(question, mode, contextoTexto, customApiKey, requestedModel) {
+  const apiKey = (customApiKey || GROQ_API_KEY || '').trim();
+
+  if (!apiKey) {
+    throw new Error('No se ha configurado GROQ_API_KEY en el microservicio ni en la petición. Configúrala en Render o en el archivo .env.');
+  }
+
+  const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
+  const targetModel = requestedModel === 'groq-small' || requestedModel === 'llama-8b' 
+    ? 'llama-3.1-8b-instant' 
+    : 'llama-3.3-70b-versatile';
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: targetModel,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: mode === 'restricted' ? 0.2 : 0.7,
+      max_tokens: 800,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `Error HTTP ${response.status} en Groq Cloud`);
+  }
+
+  const answer = data?.choices?.[0]?.message?.content || 'No se obtuvo respuesta de Groq.';
+  return {
+    answer: answer.trim(),
+    model: targetModel,
+    provider: 'Groq Cloud (Llama 3.3)',
+  };
+}
+
 async function despacharConsultaIA(requestedModel, question, mode, contextoTexto, customApiKey) {
+  const p = (requestedModel || 'gemini').toLowerCase().trim();
+  if (p.includes('groq') || p.includes('llama')) {
+    return await consultarGroq(question, mode, contextoTexto, customApiKey, requestedModel);
+  }
   return await consultarGoogleGemini(question, mode, contextoTexto, customApiKey, requestedModel);
 }
 

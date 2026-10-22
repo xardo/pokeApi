@@ -1,0 +1,140 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microservicio de Inteligencia Artificial Groq (PokeAnime Groq IA)",
+    "version": "1.0.0",
+    "description": "Microservicio independiente desacoplado que conecta la App Móvil con los modelos de código abierto Llama 3.3 (70B) y Llama 3.1 (8B) acelerados por Groq Cloud LPUs. Soporta Modo Libre y Modo Base de Datos estricto (10 Pokémon en PostgreSQL y 10 personajes de Death Note en Firebase)."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4006",
+      "description": "Servidor Local"
+    }
+  ],
+  "paths": {
+    "/api/ia/ask": {
+      "get": {
+        "tags": ["Consultas IA Groq"],
+        "summary": "Consultar a Groq mediante GET",
+        "parameters": [
+          {
+            "name": "question",
+            "in": "query",
+            "required": true,
+            "description": "Pregunta a consultar a la IA",
+            "schema": {
+              "type": "string",
+              "example": "¿Quién es L Lawliet y cuáles son los movimientos de Charizard?"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "description": "'restricted' para limitar a la base de datos propia; 'free' para modo general",
+            "schema": {
+              "type": "string",
+              "enum": ["restricted", "free"],
+              "default": "restricted"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "description": "Modelo de Groq ('groq' para Llama 3.3 70B, 'llama-8b' para Llama 3.1 8B)",
+            "schema": {
+              "type": "string",
+              "enum": ["groq", "llama-8b"],
+              "default": "groq"
+            }
+          },
+          {
+            "name": "delay",
+            "in": "query",
+            "required": false,
+            "description": "Retardo simulado en milisegundos para probar tiempos de espera (timeout)",
+            "schema": {
+              "type": "integer",
+              "example": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Respuesta generada por Groq Cloud" },
+          "400": { "description": "Pregunta no suministrada" },
+          "429": { "description": "Límite de preguntas de la BD alcanzado" },
+          "500": { "description": "Error al consultar Groq" }
+        }
+      },
+      "post": {
+        "tags": ["Consultas IA Groq"],
+        "summary": "Consultar a Groq mediante POST",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "example": "Menciona los Pokémon tipo fuego registrados y el shinigami Ryuk"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["restricted", "free"],
+                    "default": "restricted"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["groq", "llama-8b"],
+                    "default": "groq"
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "example": 0
+                  }
+                },
+                "required": ["question"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Respuesta generada por Groq Cloud" },
+          "400": { "description": "Petición inválida" },
+          "429": { "description": "Límite alcanzado" },
+          "500": { "description": "Error de servidor" }
+        }
+      }
+    },
+    "/api/ia/context": {
+      "get": {
+        "tags": ["Contexto Base de Datos"],
+        "summary": "Obtener los 10 Pokémon y 10 personajes usados como contexto estricto",
+        "responses": {
+          "200": { "description": "Listado de entidades registradas" }
+        }
+      }
+    },
+    "/api/ia/limit": {
+      "get": {
+        "tags": ["Límites de Uso"],
+        "summary": "Obtener el estado del límite de consultas del cliente",
+        "responses": {
+          "200": { "description": "Información de límite y consultas restantes" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Salud"],
+        "summary": "Verificar estado del microservicio de Groq",
+        "responses": {
+          "200": { "description": "Microservicio activo" }
+        }
+      }
+    }
+  }
+}

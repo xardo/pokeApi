@@ -1,0 +1,14 @@
+{
+  "name": "ia-groq-service-node",
+  "version": "1.0.0",
+  "description": "Microservicio independiente de Inteligencia Artificial con Groq Cloud (Llama 3.3 / Llama 3.1) conectado a las bases de datos de Pokémon y Death Note",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0"
+  }
+}

@@ -1,7 +1,7 @@
 import { GET_IA_BASE_URL, GET_IA_LOCAL_BASE_URL } from '@/constants/apiConfig';
 
 export type IAMode = 'restricted' | 'free';
-export type IAProvider = 'flash' | 'lite' | 'gemma';
+export type IAProvider = 'flash' | 'lite' | 'gemma' | 'groq' | 'llama-8b';
 export type IATimeoutSeconds = 20 | 40 | 80 | 160;
 
 export interface IALimitInfo {
@@ -57,7 +57,7 @@ export async function askIA(
     throw new Error('Debes escribir una pregunta para consultar a la Inteligencia Artificial.');
   }
 
-  const urlsToTry = [GET_IA_BASE_URL(), GET_IA_LOCAL_BASE_URL()].filter(
+  const urlsToTry = [GET_IA_BASE_URL(provider), GET_IA_LOCAL_BASE_URL(provider)].filter(
     (u, idx, arr) => Boolean(u) && arr.indexOf(u) === idx
   );
 
