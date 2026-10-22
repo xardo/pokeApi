@@ -360,8 +360,12 @@ async function consultarGoogleGeminiConFallback(question, mode, contextoTexto, c
   // Lista de modelos a probar en orden: si 3.8-flash está saturado ("high demand"), salta de inmediato a 3.1-flash-lite
   const fallbackList = [
     primaryModel,
+    'gemini-2.5-flash-lite',
     'gemini-3.1-flash-lite',
-  ].filter((m, idx, arr) => arr.indexOf(m) === idx);
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
+  ].filter((m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx);
 
   let lastError = null;
   for (const modelName of fallbackList) {
