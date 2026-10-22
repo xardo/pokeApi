@@ -240,8 +240,8 @@ const MODEL_ALIASES = {
   gemini: 'gemini-3.8-flash',
   flash: 'gemini-3.8-flash',
   'gemini-flash': 'gemini-3.8-flash',
-  lite: 'gemini-3.1-flash-lite',
-  'gemini-lite': 'gemini-3.1-flash-lite',
+  lite: 'gemini-3.5-flash-lite',
+  'gemini-lite': 'gemini-3.5-flash-lite',
   gemma: 'gemma-4-26b-a4b-it',
 };
 
@@ -360,7 +360,7 @@ async function consultarGoogleGeminiConFallback(question, mode, contextoTexto, c
   // Lista de modelos a probar en orden: si 3.8-flash está saturado ("high demand"), salta de inmediato a 3.1-flash-lite
   const fallbackList = [
     primaryModel,
-    'gemini-2.5-flash-lite',
+    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
