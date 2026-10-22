@@ -13,7 +13,7 @@ try {
 
 const PORT = process.env.PORT || 4006;
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const POKEMON_SERVICE_URL = process.env.POKEMON_SERVICE_URL || 'https://pokeapi-cmsz.onrender.com';
 const ANIME_SERVICE_URL = process.env.ANIME_SERVICE_URL || 'https://anime-service-python.onrender.com';
@@ -221,10 +221,7 @@ async function consultarGroq(question, mode, contextoTexto, customApiKey, reques
   }
 
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
-  const targetModel =
-    requestedModel === 'groq-small' || requestedModel === 'llama-8b'
-      ? 'llama-3.1-8b-instant'
-      : GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const targetModel = requestedModel === 'llama-70b' ? 'llama-3.3-70b-versatile' : (GROQ_MODEL || 'llama-3.1-8b-instant');
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
