@@ -254,7 +254,7 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
 
   const modelKey = (requestedModel || 'flash').toLowerCase().trim();
-  const targetModel = MODEL_ALIASES[modelKey] || modelKey || 'gemini-3.8-flash';
+  const targetModel = MODEL_ALIASES[modelKey] || (modelKey === 'gemini' ? 'gemini-2.5-flash' : modelKey) || 'gemini-2.5-flash';
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(
     apiKey
