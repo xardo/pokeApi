@@ -245,7 +245,7 @@ const MODEL_ALIASES = {
   gemma: 'gemma-4-26b-a4b-it',
 };
 
-async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey, requestedModel) {
+async function consultarGoogleGeminiDirecto(question, mode, contextoTexto, customApiKey, targetModel) {
   const apiKey = (customApiKey || GEMINI_API_KEY || '').trim();
 
   if (!apiKey || apiKey === 'TU_API_KEY_DE_GOOGLE_AI_STUDIO_AQUI') {
@@ -256,8 +256,7 @@ async function consultarGoogleGemini(question, mode, contextoTexto, customApiKey
 
   const { systemInstruction, userPrompt } = construirPrompt(question, mode, contextoTexto);
 
-  const modelKey = (requestedModel || 'flash').toLowerCase().trim();
-  const targetModel = MODEL_ALIASES[modelKey] || (modelKey === 'gemini' ? 'gemini-3.8-flash' : modelKey) || 'gemini-3.8-flash';
+  // targetModel asignado por despachador
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(
     apiKey
@@ -353,12 +352,45 @@ async function consultarGroq(question, mode, contextoTexto, customApiKey, reques
   };
 }
 
+
+async function consultarGoogleGeminiConFallback(question, mode, contextoTexto, customApiKey, requestedModel) {
+  const modelKey = (requestedModel || 'flash').toLowerCase().trim();
+  const primaryModel = MODEL_ALIASES[modelKey] || 'gemini-3.8-flash';
+  
+  // Lista de modelos a probar en orden: si 3.8-flash está saturado ("high demand"), salta de inmediato a 3.1-flash-lite
+  const fallbackList = [
+    primaryModel,
+    'gemini-3.1-flash-lite',
+  ].filter((m, idx, arr) => arr.indexOf(m) === idx);
+
+  let lastError = null;
+  for (const modelName of fallbackList) {
+    try {
+      return await consultarGoogleGeminiDirecto(question, mode, contextoTexto, customApiKey, modelName);
+    } catch (err) {
+      lastError = err;
+      const isOverloaded = err.message && (
+        err.message.includes('high demand') ||
+        err.message.includes('503') ||
+        err.message.includes('Resource has been exhausted') ||
+        err.message.includes('429')
+      );
+      if (!isOverloaded) {
+        throw err;
+      }
+      console.warn(`[Gemini] ${modelName} saturado, intentando con modelo alternativo...`);
+    }
+  }
+
+  throw lastError;
+}
+
 async function despacharConsultaIA(requestedModel, question, mode, contextoTexto, customApiKey) {
   const p = (requestedModel || 'gemini').toLowerCase().trim();
   if (p.includes('groq') || p.includes('llama')) {
     return await consultarGroq(question, mode, contextoTexto, customApiKey, requestedModel);
   }
-  return await consultarGoogleGemini(question, mode, contextoTexto, customApiKey, requestedModel);
+  return await consultarGoogleGeminiConFallback(question, mode, contextoTexto, customApiKey, requestedModel);
 }
 
 function responderJSON(res, status, data) {
