@@ -5,12 +5,6 @@
     "version": "1.0.0",
     "description": "Microservicio independiente desacoplado que conecta la App Móvil con los modelos de código abierto Llama 3.3 (70B) y Llama 3.1 (8B) acelerados por Groq Cloud LPUs. Soporta Modo Libre y Modo Base de Datos estricto (10 Pokémon en PostgreSQL y 10 personajes de Death Note en Firebase)."
   },
-  "servers": [
-    {
-      "url": "http://localhost:4006",
-      "description": "Servidor Local"
-    }
-  ],
   "paths": {
     "/api/ia/ask": {
       "get": {
